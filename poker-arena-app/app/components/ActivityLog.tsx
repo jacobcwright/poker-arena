@@ -134,17 +134,17 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
       case "surprised":
         return "😲"
       case "poker-face":
-        return "😑"
+        return "😐"
       case "bluffing":
         return "😏"
       case "calculating":
-        return "🧠"
+        return "🧐"
       case "intimidating":
         return "😠"
       case "worried":
         return "😟"
       default:
-        return ""
+        return "😶"
     }
   }
 
