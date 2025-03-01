@@ -17,7 +17,7 @@ from tqdm import tqdm
 class PHHPreprocessor:
     def __init__(
         self,
-        base_phh_path="/Users/maxforsey/Downloads/pluribus",
+        base_phh_path="/Users/bencullen/Downloads/pluribus",
         target_folders=["30", "40", "50", "70", "90"],
     ):
         """
@@ -476,7 +476,7 @@ def main():
     parser.add_argument(
         "--phh_path",
         type=str,
-        default="/Users/maxforsey/Downloads/pluribus",
+        default="/Users/bencullen/Downloads/pluribus",
         help="Base path to pluribus PHH files",
     )
     parser.add_argument(
