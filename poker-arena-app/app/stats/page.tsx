@@ -12,10 +12,11 @@ import {
   Label,
 } from "recharts";
 
-interface WinnerProfit {
+interface ModelProfit {
   winner_id: string;
   profit: number;
   modelName: string;
+  gamesCount: number;
 }
 
 // Format number as USD currency
@@ -29,7 +30,7 @@ const formatDollar = (value: number) => {
 };
 
 export default function StatsPage() {
-  const [data, setData] = useState<WinnerProfit[]>([]);
+  const [data, setData] = useState<ModelProfit[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [animationActive, setAnimationActive] = useState(false);
@@ -89,7 +90,7 @@ export default function StatsPage() {
   return (
     <div className="container mx-auto px-4 py-8">
       <h1 className="text-3xl font-bold mb-6 text-center">
-        Maximum Profit per Model
+        Average Profit per Model
       </h1>
 
       <div className="bg-white p-6 rounded-lg shadow-lg">
@@ -125,7 +126,7 @@ export default function StatsPage() {
               </XAxis>
               <YAxis tickFormatter={formatDollar} width={90}>
                 <Label
-                  value="Profit"
+                  value="Average Profit"
                   position="left"
                   angle={-90}
                   offset={10}
@@ -137,12 +138,30 @@ export default function StatsPage() {
                 />
               </YAxis>
               <Tooltip
-                formatter={(value) => [formatDollar(value as number), "Profit"]}
+                formatter={(value, name) => {
+                  if (name === "profit") {
+                    return [formatDollar(value as number), "Avg. Profit"];
+                  }
+                  return [value, name];
+                }}
                 labelFormatter={(label) => `Model: ${label}`}
+                content={({ active, payload, label }) => {
+                  if (active && payload && payload.length) {
+                    const data = payload[0].payload;
+                    return (
+                      <div className="bg-white p-3 border border-gray-300 shadow-md rounded">
+                        <p className="font-bold">{`Model: ${label}`}</p>
+                        <p>{`Average Profit: ${formatDollar(data.profit)}`}</p>
+                        <p>{`Games Played: ${data.gamesCount}`}</p>
+                      </div>
+                    );
+                  }
+                  return null;
+                }}
               />
               <Bar
                 dataKey="profit"
-                name="Profit"
+                name="Average Profit"
                 fill="#8884d8"
                 animationBegin={0}
                 animationDuration={2000}

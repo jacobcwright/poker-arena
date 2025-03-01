@@ -15,26 +15,23 @@ const supabase = createClient(supabaseUrl, supabaseKey);
 export async function GET() {
   try {
     // Query to get game data with model names by joining the tables
-    const { data, error } = await supabase
-      .from("game")
-      .select(
-        `
+    const { data, error } = await supabase.from("game").select(
+      `
         winner,
         profit,
         model:winner (
           name
         )
       `
-      )
-      .order("profit", { ascending: false });
+    );
 
     if (error) {
       console.error("Error fetching data:", error);
       return NextResponse.json({ error: error.message }, { status: 500 });
     }
 
-    // Process the data to get max profit per winner with model name
-    const winnerProfits = new Map();
+    // Process the data to calculate average profit per model
+    const modelProfits = new Map();
 
     if (data) {
       data.forEach((game: any) => {
@@ -53,26 +50,34 @@ export async function GET() {
           }
         }
 
-        if (
-          !winnerProfits.has(winner) ||
-          profit > winnerProfits.get(winner).profit
-        ) {
-          winnerProfits.set(winner, {
-            profit,
-            modelName,
+        // If this model is already in our map, update its data
+        if (modelProfits.has(modelName)) {
+          const modelData = modelProfits.get(modelName);
+          modelData.totalProfit += profit;
+          modelData.count += 1;
+        } else {
+          // First time seeing this model
+          modelProfits.set(modelName, {
+            totalProfit: profit,
+            count: 1,
+            winner_id: winner,
           });
         }
       });
     }
 
-    // Convert to array format for the frontend
-    const result = Array.from(winnerProfits.entries()).map(
-      ([winner_id, data]) => ({
-        winner_id,
-        profit: data.profit,
-        modelName: data.modelName,
+    // Calculate averages and convert to array format for the frontend
+    const result = Array.from(modelProfits.entries()).map(
+      ([modelName, data]) => ({
+        winner_id: data.winner_id,
+        profit: Math.round(data.totalProfit / data.count), // Average profit rounded to nearest integer
+        modelName: modelName,
+        gamesCount: data.count,
       })
     );
+
+    // Sort by average profit (descending)
+    result.sort((a, b) => b.profit - a.profit);
 
     return NextResponse.json({ data: result });
   } catch (error) {
