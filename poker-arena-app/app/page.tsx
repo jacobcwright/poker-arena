@@ -13,6 +13,7 @@ import {
   determineWinners,
   awardPot,
   setupNextHand,
+  addLogEntry,
 } from "./game/gameEngine"
 import { assignPersonalities } from "./game/pokerAI"
 import { calculateEquity } from "./game/equityCalculator"
@@ -65,17 +66,53 @@ export default function Home() {
     const gameLoop = async () => {
       if (!isMounted) return
 
-      // Start with a fresh game state for this round
-      const freshState = {
-        ...createInitialGameState(playerCount),
-        round: roundRef.current,
+      // Instead of creating a fresh state for each round, we'll use the existing state
+      // or create a new one only for the first round
+      let currentGameState: GameState
+
+      if (roundRef.current === 1) {
+        // Only create a fresh state for the first round
+        currentGameState = {
+          ...createInitialGameState(playerCount),
+          round: roundRef.current,
+        }
+
+        // Assign AI personalities to players only at the start
+        assignPersonalities(currentGameState.players)
+      } else {
+        // For subsequent rounds, use the existing state from the previous round
+        // We use setupNextHand which properly resets just what's needed between hands
+        currentGameState = setupNextHand(gameState as GameState)
       }
 
-      // Assign AI personalities to players
-      assignPersonalities(freshState.players)
+      // Check if game should end (only one player with chips)
+      const playersWithChips = currentGameState.players.filter(
+        (p) => p.chips > 0
+      )
+      if (playersWithChips.length <= 1) {
+        // Game is over - only one player has chips left
+        const winner = playersWithChips[0]
+        if (winner) {
+          // Add a game end log entry
+          const finalState = addLogEntry(
+            currentGameState,
+            winner.id,
+            "win",
+            `Game over! ${winner.name} wins the tournament with ${winner.chips} chips!`,
+            winner.chips
+          )
+          setGameState(finalState)
+        }
+        setIsGameRunning(false)
+        return
+      }
 
-      // Initialize with blinds
-      const initializedState = initializeBlinds(freshState)
+      // Initialize with blinds (only if this is the first round, otherwise blinds are set in setupNextHand)
+      const initializedState =
+        roundRef.current === 1
+          ? initializeBlinds(currentGameState)
+          : currentGameState
+
       if (!isMounted) return
       setGameState(initializedState)
       await waitWithPauseCheck(1000)
@@ -168,13 +205,8 @@ export default function Home() {
       // If still running, trigger the next round
       if (isMounted && isGameRunning) {
         roundRef.current += 1
-        // Set up the next hand for the next round
-        setGameState((prevState) => {
-          if (!prevState) return setupNextHand(finalState as GameState)
-          return setupNextHand(prevState)
-        })
 
-        // Use setTimeout to break the synchronous execution chain
+        // We no longer need to call setupNextHand here since we'll do it at the beginning of the next gameLoop iteration
         setTimeout(() => {
           if (isMounted && isGameRunning) {
             gameLoop()
