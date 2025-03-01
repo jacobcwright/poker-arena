@@ -26,6 +26,16 @@ Created a real-time poker simulation application where Claude NPCs play Texas Ho
 - Added human-readable descriptions of winning hands
 - Created comparative logic to determine the best hand in showdowns
 
+### Equity Calculation System
+- Implemented real-time equity odds calculation in `equityCalculator.ts`
+- Built Monte Carlo simulation for accurate post-flop equity analysis
+- Created specialized pre-flop equity algorithm based on hand strength and player count
+- Integrated equity updates at each game phase (dealing, flop, turn, river)
+- Added color-coded equity display on player cards (green for high equity, red for low)
+- Implemented detailed equity tracking in the activity log with historical changes
+- Optimized simulation performance with 500+ iterations per calculation
+- Added ability to visualize how odds shift throughout the hand
+
 ### UI Components
 - Designed an interactive poker table with player positions
 - Created card components with proper suit and rank visualization
@@ -46,6 +56,7 @@ Created a real-time poker simulation application where Claude NPCs play Texas Ho
 - Created toggle functionality to show/hide the log while playing
 - Added contextual descriptions that explain AI thought processes
 - Included logging for game phase changes and blind postings
+- Enhanced equity tracking in the log with color-coded percentages
 - Enhanced user experience with intuitive panel design and smooth animations
 
 ### Game Flow Control
@@ -85,6 +96,7 @@ Created a real-time poker simulation application where Claude NPCs play Texas Ho
 13. Added card reveal functionality when hovering over players
 14. Implemented animated card flipping transitions
 15. Created collapsible activity log system to track AI NPC actions
+16. Implemented real-time equity calculation and visualization
 
 ## Future Enhancements
 - Add player avatars and more personality traits for NPCs
@@ -95,3 +107,4 @@ Created a real-time poker simulation application where Claude NPCs play Texas Ho
 - Implement tournament mode with blinds progression 
 - Enhance activity log with filtering options
 - Add ability to review previous hand histories 
+- Integrate more advanced equity calculations accounting for player tendencies 

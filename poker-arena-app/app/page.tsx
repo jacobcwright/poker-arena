@@ -15,6 +15,7 @@ import {
   setupNextHand,
 } from "./game/gameEngine"
 import { assignPersonalities } from "./game/pokerAI"
+import { calculateEquity } from "./game/equityCalculator"
 import StatsPanel from "./components/StatsPanel"
 import ActivityLog from "./components/ActivityLog"
 
@@ -138,17 +139,20 @@ export default function Home() {
       // Showdown phase
       const showdownState = { ...currentState, currentPhase: "showdown" }
 
+      // Calculate final equity before determining winners
+      const stateWithEquity = calculateEquity(showdownState as GameState)
+      setGameState(stateWithEquity)
+      await waitWithPauseCheck(500) // Short delay to show final equity
+
       // Determine winners with hand descriptions
-      const { winners, handDescriptions } = determineWinners(
-        showdownState as GameState
-      )
+      const { winners, handDescriptions } = determineWinners(stateWithEquity)
 
       // Make sure we're correctly handling the hand descriptions
       console.log("Hand descriptions:", handDescriptions) // Add logging to debug
 
       // Update state with winners and hand results
       const finalState = {
-        ...awardPot(showdownState as GameState, winners),
+        ...awardPot(stateWithEquity, winners),
         winningPlayers: winners.map((w) => w.id),
         handResults: handDescriptions,
       }

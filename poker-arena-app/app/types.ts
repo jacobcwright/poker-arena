@@ -32,6 +32,7 @@ export interface Player {
   isAllIn: boolean
   isDealer: boolean
   isTurn: boolean
+  equity?: number // Odds of winning as a percentage
 }
 
 export type GamePhase =
@@ -51,6 +52,7 @@ export interface ActivityLogEntry {
   description: string
   timestamp: number
   phase: GamePhase
+  equity?: number // Player's equity at the time of this action
 }
 
 export interface GameState {

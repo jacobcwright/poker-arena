@@ -13,6 +13,7 @@ import {
   getActionDescription,
 } from "./pokerAI"
 import { evaluateHand, compareHands, HandResult } from "./handEvaluator"
+import { calculateEquity } from "./equityCalculator"
 
 export const createNewDeck = (): Card[] => {
   const suits: Suit[] = ["hearts", "diamonds", "clubs", "spades"]
@@ -102,21 +103,24 @@ export const dealPlayerCards = (gameState: GameState): GameState => {
     }
   }
 
-  newState.currentPhase = "preFlop"
+  newState.currentPhase = "dealing"
 
-  // Log the dealing action
-  return logPhaseChange(
+  // Add a phase change log entry
+  const stateWithLog = logPhaseChange(
     newState,
-    "preFlop",
-    "Cards dealt to players. Pre-flop betting begins."
+    "dealing",
+    "Cards are being dealt to players"
   )
+
+  // Calculate initial equity after dealing
+  return calculateEquity(stateWithLog)
 }
 
 export const dealFlop = (gameState: GameState): GameState => {
   const newState = { ...gameState }
   const { deck } = newState
 
-  // Burn a card
+  // Burn one card
   deck.pop()
 
   // Deal three cards for the flop
@@ -129,19 +133,18 @@ export const dealFlop = (gameState: GameState): GameState => {
 
   newState.currentPhase = "flop"
 
-  // Log the flop action
-  return logPhaseChange(
-    newState,
-    "flop",
-    "Flop cards revealed. Flop betting begins."
-  )
+  // Add a phase change log entry
+  const stateWithLog = logPhaseChange(newState, "flop", "Flop cards are dealt")
+
+  // Calculate equity after the flop
+  return calculateEquity(stateWithLog)
 }
 
 export const dealTurn = (gameState: GameState): GameState => {
   const newState = { ...gameState }
   const { deck } = newState
 
-  // Burn a card
+  // Burn one card
   deck.pop()
 
   // Deal one card for the turn
@@ -152,19 +155,18 @@ export const dealTurn = (gameState: GameState): GameState => {
 
   newState.currentPhase = "turn"
 
-  // Log the turn action
-  return logPhaseChange(
-    newState,
-    "turn",
-    "Turn card revealed. Turn betting begins."
-  )
+  // Add a phase change log entry
+  const stateWithLog = logPhaseChange(newState, "turn", "Turn card is dealt")
+
+  // Calculate equity after the turn
+  return calculateEquity(stateWithLog)
 }
 
 export const dealRiver = (gameState: GameState): GameState => {
   const newState = { ...gameState }
   const { deck } = newState
 
-  // Burn a card
+  // Burn one card
   deck.pop()
 
   // Deal one card for the river
@@ -175,12 +177,11 @@ export const dealRiver = (gameState: GameState): GameState => {
 
   newState.currentPhase = "river"
 
-  // Log the river action
-  return logPhaseChange(
-    newState,
-    "river",
-    "River card revealed. Final betting round begins."
-  )
+  // Add a phase change log entry
+  const stateWithLog = logPhaseChange(newState, "river", "River card is dealt")
+
+  // Calculate equity after the river
+  return calculateEquity(stateWithLog)
 }
 
 export const nextPlayer = (gameState: GameState): GameState => {
@@ -215,29 +216,25 @@ export const addLogEntry = (
   description: string,
   amount?: number
 ): GameState => {
+  const player = state.players.find((p) => p.id === playerId)
+  if (!player) return state
+
   const newState = { ...state }
-  const player = newState.players.find((p) => p.id === playerId)
-
-  if (!player) return newState
-
-  // Initialize log array if it doesn't exist
   if (!newState.activityLog) {
     newState.activityLog = []
   }
 
-  // Create the log entry
-  const logEntry: ActivityLogEntry = {
+  // Add equity to the log entry if available
+  newState.activityLog.push({
     playerId,
     playerName: player.name,
     action,
-    amount,
     description,
     timestamp: Date.now(),
-    phase: newState.currentPhase,
-  }
-
-  // Add to the activity log
-  newState.activityLog.push(logEntry)
+    phase: state.currentPhase,
+    amount,
+    equity: player.equity, // Include current equity in the log
+  })
 
   return newState
 }
@@ -308,7 +305,12 @@ export const processBettingRound = async (
   setGameState: (state: GameState) => void,
   delay: number
 ): Promise<GameState> => {
+  // This is a work in progress implementation
   let currentState = { ...gameState }
+
+  // Calculate initial equity at the start of the betting round
+  currentState = calculateEquity(currentState)
+  setGameState(currentState)
 
   // Track the highest bet in this round
   let highestBet = Math.max(...currentState.players.map((p) => p.currentBet))

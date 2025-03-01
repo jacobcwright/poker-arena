@@ -68,6 +68,16 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
     }
   }
 
+  // Get color based on equity value
+  const getEquityColor = (equity?: number): string => {
+    if (equity === undefined) return "text-gray-500"
+    if (equity >= 75) return "text-green-500"
+    if (equity >= 50) return "text-lime-400"
+    if (equity >= 30) return "text-yellow-400"
+    if (equity >= 15) return "text-orange-400"
+    return "text-red-400"
+  }
+
   return (
     <div
       className={`activity-log-container fixed right-0 top-0 h-full z-10 transition-all duration-300 ${
@@ -122,8 +132,19 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
                   <div className={`${getActionColor(entry.action)}`}>
                     {entry.description}
                   </div>
-                  <div className="text-xs text-gray-500 mt-1">
-                    Phase: {entry.phase}
+                  <div className="flex justify-between items-center mt-1">
+                    <span className="text-xs text-gray-500">
+                      Phase: {entry.phase}
+                    </span>
+                    {entry.equity !== undefined && (
+                      <span
+                        className={`text-xs font-semibold ${getEquityColor(
+                          entry.equity
+                        )}`}
+                      >
+                        Equity: {entry.equity.toFixed(1)}%
+                      </span>
+                    )}
                   </div>
                 </div>
               ))

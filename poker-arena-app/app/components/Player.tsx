@@ -17,8 +17,17 @@ export default function Player({
   action,
   isWinner = false,
 }: PlayerProps) {
-  const { name, hand, chips, currentBet, isActive, isDealer, isTurn, isAllIn } =
-    player
+  const {
+    name,
+    hand,
+    chips,
+    currentBet,
+    isActive,
+    isDealer,
+    isTurn,
+    isAllIn,
+    equity,
+  } = player
 
   const [showAction, setShowAction] = useState(false)
   const [currentAction, setCurrentAction] = useState<{
@@ -65,6 +74,16 @@ export default function Player({
   ]
 
   const positionClass = positions[position % positions.length]
+
+  // Get color based on equity value
+  const getEquityColor = () => {
+    if (equity === undefined || !isActive || !hand) return "text-gray-500"
+    if (equity >= 75) return "text-green-500"
+    if (equity >= 50) return "text-lime-400"
+    if (equity >= 30) return "text-yellow-400"
+    if (equity >= 15) return "text-orange-400"
+    return "text-red-400"
+  }
 
   // Action text and styles
   const getActionDisplay = () => {
@@ -206,6 +225,13 @@ export default function Player({
             {isAllIn && <div className="text-red-400">ALL IN</div>}
             {!isActive && <div className="text-gray-400">FOLDED</div>}
           </div>
+
+          {/* Display equity odds */}
+          {equity !== undefined && isActive && hand && (
+            <div className={`mt-1 ${getEquityColor()} text-sm font-bold`}>
+              Equity: {equity.toFixed(1)}%
+            </div>
+          )}
 
           {isWinner && (
             <div className="mt-2 bg-yellow-500 text-black px-2 py-1 rounded-full text-xs font-bold animate-pulse">
