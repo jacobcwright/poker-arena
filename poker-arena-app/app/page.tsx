@@ -203,7 +203,7 @@ export default function Home() {
     const lowerResponse = response.toLowerCase()
     const thinkIndex = lowerResponse.indexOf("</think>")
 
-    const chainOfThought = response.substring(8, thinkIndex)
+    const chainOfThought = response.substring(7, thinkIndex)
 
     // Use only the text after </think> if it exists, otherwise use the whole response
     const decisionText =
@@ -320,39 +320,6 @@ export default function Home() {
   // Toggle pause state
   const togglePause = () => {
     setIsPaused((prev) => !prev)
-  }
-
-  // Update statistics when a round ends
-  const updateStats = (state: GameState, winners: Player[]) => {
-    setGameStats((prevStats: GameStats) => {
-      const newStats = { ...prevStats }
-
-      // Increment hands played
-      newStats.handsPlayed += 1
-
-      // Update biggest pot if current pot is larger
-      if (state.pot > newStats.biggestPot) {
-        newStats.biggestPot = state.pot
-      }
-
-      // Track winners
-      const winAmount = Math.floor(state.pot / winners.length)
-
-      winners.forEach((winner) => {
-        // Update hand wins counter
-        newStats.handWins[winner.id] = (newStats.handWins[winner.id] || 0) + 1
-
-        // Update biggest win amount for this player
-        if (
-          !newStats.biggestWin[winner.id] ||
-          winAmount > newStats.biggestWin[winner.id]
-        ) {
-          newStats.biggestWin[winner.id] = winAmount
-        }
-      })
-
-      return newStats
-    })
   }
 
   return (
