@@ -37,7 +37,7 @@ export const publishRoundResults = async (
     // Create records for each player
     const records = players.map((player) => ({
       round_id: id,
-      model: player.id,
+      model: player.name.slice(0, -3),
       end_balance: player.chips,
     }))
 
