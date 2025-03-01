@@ -18,7 +18,8 @@ const supabase = createClient(supabaseUrl, supabaseKey)
  */
 export const publishRoundResults = async (
   players: Array<{ id: number; name: string; chips: number }>,
-  roundId?: string
+  roundId?: string,
+  gameId?: string
 ): Promise<void> => {
   try {
     // Generate a unique ID for this round if not provided
@@ -38,7 +39,8 @@ export const publishRoundResults = async (
     const records = players.map((player) => ({
       round_id: id,
       model: player.name.slice(0, -3),
-      end_balance: player.chips,
+      balance: player.chips,
+      game_id: gameId,
     }))
 
     console.log("Records to insert:", JSON.stringify(records, null, 2))

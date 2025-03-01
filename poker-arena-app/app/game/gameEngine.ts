@@ -16,7 +16,7 @@ import {
 import { evaluateHand, compareHands, HandResult } from "./handEvaluator"
 import { calculateEquity } from "./equityCalculator"
 import { publishRoundResults } from "../services/supabaseService"
-
+import { v4 as uuidv4 } from "uuid"
 export const createNewDeck = (): Card[] => {
   const suits: Suit[] = ["hearts", "diamonds", "clubs", "spades"]
   const ranks: Rank[] = [
@@ -759,7 +759,8 @@ export const determineWinners = (
 
 // Reset for a new hand
 export const setupNextHand = async (
-  gameState: GameState
+  gameState: GameState,
+  gameId: string
 ): Promise<GameState> => {
   // Deep clone the players array to preserve chip counts
   const newPlayers = gameState.players.map((player) => ({ ...player }))
@@ -813,7 +814,7 @@ export const setupNextHand = async (
   )
 
   // Publish round results to Supabase
-  await publishRoundResults(newState.players)
+  await publishRoundResults(newState.players, undefined, gameId)
 
   // Initialize blinds and set the active player
   return initializeBlinds(updatedState)
@@ -867,6 +868,7 @@ export const roundLoop = async (
   gameState: GameState,
   setGameState: (state: GameState) => void,
   delay: number,
+  gameId: string,
   getPlayerDecision: (
     player: Player,
     gameState: GameState
@@ -888,7 +890,7 @@ export const roundLoop = async (
 ): Promise<GameState> => {
   // Prepare new round: reset round-specific info while keeping persistent data (chips, etc.)
   console.log("========== gameState", gameState)
-  let currentState = await setupNextHand(gameState)
+  let currentState = await setupNextHand(gameState, gameId)
 
   // Deal player cards
   currentState = dealPlayerCards(currentState)
@@ -1009,9 +1011,6 @@ export const roundLoop = async (
   }
   setGameState(finalState)
 
-  // Publish round results to Supabase
-  await publishRoundResults(finalState.players)
-
   await wait(delay * 3)
 
   return finalState
@@ -1043,6 +1042,8 @@ export const gameLoop = async (
   shouldStop: () => boolean
 ): Promise<void> => {
   let currentState = initialGameState
+  const gameId = uuidv4()
+
   while (!shouldStop()) {
     // Mark any players with zero or negative chips as eliminated
     currentState.players.forEach((player) => {
@@ -1077,10 +1078,12 @@ export const gameLoop = async (
       }
       break
     }
+
     currentState = await roundLoop(
       currentState,
       setGameState,
       delay,
+      gameId,
       getPlayerDecision
     )
   }
