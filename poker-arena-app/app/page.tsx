@@ -77,15 +77,31 @@ export default function Home() {
     const initialPlayerTypes: Record<number, string> = {}
     initialState.players.forEach((player) => {
       initialPlayerTypes[player.id] = "AI"
+      // Set initial player name based on model type
+      player.name = `${modelConfigs["AI"].name} #${player.id + 1}`
     })
     setPlayerTypes(initialPlayerTypes)
   }, [playerCount])
 
   const handlePlayerTypeChange = (playerId: number, type: string) => {
-    setPlayerTypes((prev) => ({
-      ...prev,
-      [playerId]: type,
-    }))
+    setPlayerTypes((prev) => {
+      const newTypes = {
+        ...prev,
+        [playerId]: type,
+      }
+
+      // Update the player name when changing the model type
+      if (gameState) {
+        const player = gameState.players.find((p) => p.id === playerId)
+        if (player) {
+          player.name = `${modelConfigs[type].name} #${playerId + 1}`
+          // Create a new reference to cause a re-render
+          setGameState({ ...gameState })
+        }
+      }
+
+      return newTypes
+    })
   }
 
   // Add this function to handle regular AI decisions
@@ -171,11 +187,7 @@ export default function Home() {
 
     Previous actions: ${JSON.stringify(gameState.playerActions)}
 
-    Your output should be in the following format:
-    <think>
-    Your chain of thought
-    </think>
-    Your action
+    Your output should only be the action you would take.
     
     What action would you take? Choose one:
     fold
@@ -191,7 +203,7 @@ export default function Home() {
     const lowerResponse = response.toLowerCase()
     const thinkIndex = lowerResponse.indexOf("</think>")
 
-    const chainOfThought = response.substring(0, thinkIndex + 9)
+    const chainOfThought = response.substring(8, thinkIndex)
 
     // Use only the text after </think> if it exists, otherwise use the whole response
     const decisionText =
@@ -287,10 +299,18 @@ export default function Home() {
     if (!isGameRunning) {
       // Create a fresh game state and reset round counter
       roundRef.current = 1
-      setGameState({
+      const newGameState = {
         ...createInitialGameState(playerCount),
         round: roundRef.current,
+      }
+
+      // Update player names based on their assigned model types
+      newGameState.players.forEach((player) => {
+        const modelType = playerTypes[player.id] || "AI"
+        player.name = `${modelConfigs[modelType].name} #${player.id + 1}`
       })
+
+      setGameState(newGameState)
       setIsGameRunning(true)
     } else {
       setIsGameRunning(false)
