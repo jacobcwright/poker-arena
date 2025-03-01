@@ -627,7 +627,7 @@ export default function Home() {
               </select>
             </div>
 
-            <div className="flex items-center gap-4">
+            {/* <div className="flex items-center gap-4">
               <label htmlFor="gameSpeed">Speed:</label>
               <select
                 id="gameSpeed"
@@ -639,7 +639,7 @@ export default function Home() {
                 <option value={2000}>Normal</option>
                 <option value={3000}>Slow</option>
               </select>
-            </div>
+            </div> */}
 
             <button
               onClick={toggleGame}

@@ -1,3 +1,4 @@
+export const maxDuration = 20
 import { NextRequest, NextResponse } from "next/server"
 import { Emotion } from "../../types"
 import Anthropic from "@anthropic-ai/sdk"
