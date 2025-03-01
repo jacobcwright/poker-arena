@@ -52,14 +52,45 @@ export const shuffleDeck = (deck: Card[]): Card[] => {
   return shuffled
 }
 
+// Add this new function to generate unique poker player names with personalities
+export const generatePokerPlayerName = (id: number): { name: string; personality: string } => {
+  const pokerPersonalities = [
+    { name: "Tilly 'All-In' Anderson", personality: "aggressive" },
+    { name: "Sammy 'Folding Hands' Chen", personality: "tight" },
+    { name: "Max 'The Calculator' Fischer", personality: "analytical" },
+    { name: "Luna 'Lucky Card' Martinez", personality: "loose" },
+    { name: "Viktor 'Stone Face' Petrov", personality: "conservative" },
+    { name: "Rio 'The Bluffer' Jackson", personality: "bluffer" },
+    { name: "Penny 'The Shark' Waters", personality: "aggressive" },
+    { name: "Charlie 'Chill Check' Thompson", personality: "passive" },
+    { name: "Molly 'Math Whiz' Bloom", personality: "analytical" },
+    { name: "Tony 'The Tell' Rodriguez", personality: "loose" },
+    { name: "Sophie 'The Statistician' Kim", personality: "tight" },
+    { name: "Jack 'Wild Card' Wilson", personality: "unpredictable" },
+    { name: "Evelyn 'Even Money' Park", personality: "balanced" },
+    { name: "Bobby 'Big Stacks' Johnson", personality: "aggressive" },
+    { name: "Olivia 'One Pair' Williams", personality: "cautious" },
+    { name: "Frank 'Flash' Murphy", personality: "aggressive" },
+    { name: "Zoe 'Zen Master' Taylor", personality: "passive" },
+    { name: "Harvey 'Hot Streak' Wong", personality: "loose" },
+    { name: "Grace 'The Grinder' Miller", personality: "tight" },
+    { name: "Duke 'Double Down' Smith", personality: "risk-taker" }
+  ];
+  
+  // Use modulo to cycle through the personalities if there are more players than personalities
+  const personalityIndex = id % pokerPersonalities.length;
+  return pokerPersonalities[personalityIndex];
+}
+
 export const createInitialGameState = (playerCount: number): GameState => {
   const deck = createNewDeck()
   const players: Player[] = []
 
   for (let i = 0; i < playerCount; i++) {
+    const playerPersona = generatePokerPlayerName(i);
     players.push({
       id: i,
-      name: `NPC ${i + 1}`,
+      name: playerPersona.name,
       hand: null,
       chips: 100, // Starting chips
       currentBet: 0,

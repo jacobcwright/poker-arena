@@ -4,16 +4,19 @@ import { useState, useEffect } from "react"
 interface CardProps {
   card: CardType
   hidden?: boolean
+  faceUp?: boolean
 }
 
-export default function Card({ card, hidden = false }: CardProps) {
-  const { suit, rank, faceUp } = card
+export default function Card({ card, hidden = false, faceUp }: CardProps) {
+  const { suit, rank } = card
   const [isFlipping, setIsFlipping] = useState(false)
-  const [showFront, setShowFront] = useState(faceUp && !hidden)
+  const [showFront, setShowFront] = useState((faceUp !== undefined ? faceUp : card.faceUp) && !hidden)
 
   // Handle changes to the faceUp or hidden state with animation
   useEffect(() => {
-    const shouldShowFront = faceUp && !hidden
+    // Use the prop faceUp if provided, otherwise use the card's own faceUp property
+    const cardFaceUp = faceUp !== undefined ? faceUp : card.faceUp
+    const shouldShowFront = cardFaceUp && !hidden
     if (showFront === shouldShowFront) return
 
     setIsFlipping(true)
@@ -23,7 +26,7 @@ export default function Card({ card, hidden = false }: CardProps) {
     }, 150) // Half of the transition duration
 
     return () => clearTimeout(timer)
-  }, [faceUp, hidden])
+  }, [faceUp, card.faceUp, hidden])
 
   // Color based on suit
   const isRed = suit === "hearts" || suit === "diamonds"

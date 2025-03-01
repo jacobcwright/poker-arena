@@ -48,6 +48,124 @@ export default function Player({
     return suitSymbols[suit] || ""
   }
 
+  // Extract player's nickname and personality
+  const getNicknameAndPersonality = (): { nickname: string; personality: string } => {
+    // Default values
+    let nickname = name;
+    let personality = "regular";
+    
+    // If name has a nickname in quotes, extract it
+    const nicknameMatch = name.match(/'([^']+)'/);
+    if (nicknameMatch && nicknameMatch[1]) {
+      nickname = nicknameMatch[1];
+      
+      // Try to identify personality from nickname
+      if (nickname.includes("All-In") || nickname.includes("Big") || nickname.includes("Shark")) {
+        personality = "aggressive";
+      } else if (nickname.includes("Fold") || nickname.includes("Tight") || nickname.includes("Grinder")) {
+        personality = "tight";
+      } else if (nickname.includes("Calculator") || nickname.includes("Math") || nickname.includes("Statistician")) {
+        personality = "analytical";
+      } else if (nickname.includes("Lucky") || nickname.includes("Wild") || nickname.includes("Hot")) {
+        personality = "loose";
+      } else if (nickname.includes("Stone") || nickname.includes("Conservative")) {
+        personality = "conservative"; 
+      } else if (nickname.includes("Bluff") || nickname.includes("Tell")) {
+        personality = "bluffer";
+      } else if (nickname.includes("Check") || nickname.includes("Zen")) {
+        personality = "passive";
+      } else if (nickname.includes("Card") || nickname.includes("Wild")) {
+        personality = "unpredictable";
+      } else if (nickname.includes("Money") || nickname.includes("Even")) {
+        personality = "balanced";
+      } else if (nickname.includes("Double") || nickname.includes("Flash")) {
+        personality = "risk-taker";
+      } else if (nickname.includes("Pair") || nickname.includes("Cautious")) {
+        personality = "cautious";
+      }
+    }
+    
+    return { nickname, personality };
+  };
+  
+  // Personality-driven styling
+  const getPersonalityIcon = (): string => {
+    const { personality } = getNicknameAndPersonality();
+    
+    switch (personality) {
+      case "aggressive": return "🔥"; 
+      case "tight": return "🔒";
+      case "analytical": return "🧮";
+      case "loose": return "🎲";
+      case "conservative": return "🧊";
+      case "bluffer": return "🃏";
+      case "passive": return "☯️";
+      case "unpredictable": return "❓";
+      case "balanced": return "⚖️";
+      case "risk-taker": return "💰";
+      case "cautious": return "🐢";
+      default: return "🤖";
+    }
+  };
+
+  // Get avatar design based on personality
+  const getAvatarDesign = () => {
+    const { personality } = getNicknameAndPersonality();
+    const firstLetter = getDisplayName().charAt(0).toUpperCase();
+    
+    // Different avatar designs based on personality
+    switch (personality) {
+      case "aggressive": 
+        return (
+          <div className="bg-gradient-to-br from-red-600 to-red-700 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
+            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_70%)]"></div>
+            <div className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center">🔥</div>
+          </div>
+        );
+      case "tight":
+        return (
+          <div className="bg-gradient-to-br from-blue-700 to-blue-800 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
+            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
+            <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.1)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.1)_50%,rgba(255,255,255,0.1)_75%,transparent_75%,transparent)]"></div>
+            <div className="absolute top-0 right-0 w-3 h-3 flex items-center justify-center">🔒</div>
+          </div>
+        );
+      case "analytical":
+        return (
+          <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
+            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
+            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.2)_0%,transparent_70%)]"></div>
+            <div className="absolute top-0 left-0 w-3 h-3 flex items-center justify-center">🧮</div>
+          </div>
+        );
+      case "loose":
+        return (
+          <div className="bg-gradient-to-br from-purple-500 to-purple-600 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
+            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,transparent_60%)]"></div>
+            <div className="absolute bottom-0 left-0 w-3 h-3 flex items-center justify-center">🎲</div>
+          </div>
+        );
+      case "bluffer":
+        return (
+          <div className="bg-gradient-to-br from-amber-500 to-amber-600 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
+            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
+            <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.1)_0%,transparent_50%,rgba(255,255,255,0.1)_100%)]"></div>
+            <div className="absolute top-0 right-0 w-3 h-3 flex items-center justify-center">🃏</div>
+          </div>
+        );
+      default:
+        // Generic avatar for other personalities
+        return (
+          <div className={`${getAvatarColor()} w-full h-full rounded-full flex items-center justify-center`}>
+            <div className="text-white font-bold text-base">{firstLetter}</div>
+            <div className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center">{getPersonalityIcon()}</div>
+          </div>
+        );
+    }
+  };
+
   // Periodically animate active players' avatars for a "breathing" effect
   useEffect(() => {
     if (isTurn) {
@@ -105,25 +223,44 @@ export default function Player({
     return "bg-red-400"
   }
 
-  // Generate avatar color based on player name
+  // Generate avatar color based on player personality
   const getAvatarColor = () => {
-    const colors = [
-      "bg-blue-600",
-      "bg-red-600",
-      "bg-green-600",
-      "bg-purple-600",
-      "bg-yellow-600",
-      "bg-pink-600",
-      "bg-indigo-600",
-      "bg-teal-600",
-    ]
-
-    // Simple hash function to get consistent color
-    const nameHash = name
-      .split("")
-      .reduce((acc, char) => acc + char.charCodeAt(0), 0)
-    return colors[nameHash % colors.length]
+    const { personality } = getNicknameAndPersonality();
+    
+    const personalityColors: Record<string, string> = {
+      "aggressive": "bg-gradient-to-br from-red-600 to-red-700",
+      "tight": "bg-gradient-to-br from-blue-700 to-blue-800",
+      "analytical": "bg-gradient-to-br from-indigo-600 to-indigo-700",
+      "loose": "bg-gradient-to-br from-purple-500 to-purple-600",
+      "conservative": "bg-gradient-to-br from-teal-600 to-teal-700",
+      "bluffer": "bg-gradient-to-br from-amber-500 to-amber-600",
+      "passive": "bg-gradient-to-br from-green-600 to-green-700",
+      "unpredictable": "bg-gradient-to-br from-fuchsia-500 to-fuchsia-600",
+      "balanced": "bg-gradient-to-br from-emerald-500 to-emerald-600",
+      "risk-taker": "bg-gradient-to-br from-orange-500 to-orange-600",
+      "cautious": "bg-gradient-to-br from-cyan-600 to-cyan-700",
+    };
+    
+    return personalityColors[personality] || "bg-gradient-to-br from-gray-600 to-gray-700";
   }
+
+  // Format player name for display (clean up nickname format)
+  const getDisplayName = () => {
+    const { nickname } = getNicknameAndPersonality();
+    
+    // Check if the name matches our expected format with a nickname
+    const nameMatch = name.match(/^(.*?)\s+'([^']+)'(.*?)$/);
+    
+    if (nameMatch) {
+      const firstName = nameMatch[1];
+      const lastName = nameMatch[3];
+      
+      // Display first name and last initial for cleaner look
+      return `${firstName} '${nickname}'`;
+    }
+    
+    return name;
+  };
 
   // Action text and styles with enhanced animations
   const getActionDisplay = () => {
@@ -184,14 +321,21 @@ export default function Player({
 
   // Calculate spotlight opacity based on player state
   const getSpotlightOpacity = () => {
-    if (isWinner) return 0.3
+    if (isWinner) return 0.4
     if (isTurn) return 0.2
     return 0
   }
 
+  // Enhanced winner effects
+  const winnerGlowStyle = isWinner ? {
+    animation: 'pulse 1.5s infinite',
+    boxShadow: '0 0 25px rgba(250, 204, 21, 0.7), 0 0 15px rgba(250, 204, 21, 0.5)',
+    transform: 'scale(1.05)'
+  } : {};
+
   return (
     <div
-      className={`absolute ${positionClass} ${isTurn ? "z-20" : "z-10"} 
+      className={`absolute ${positionClass} ${isTurn ? "z-20" : isWinner ? "z-30" : "z-10"} 
                 transition-all duration-500`}
     >
       {/* Player spotlight for active player */}
@@ -199,14 +343,33 @@ export default function Player({
         <div
           className={`absolute -inset-4 rounded-full transition-opacity duration-700 ${
             isWinner
-              ? "bg-gradient-radial from-yellow-400/30 to-transparent"
+              ? "bg-gradient-radial from-yellow-400/40 to-transparent"
               : "bg-gradient-radial from-blue-400/20 to-transparent"
           }`}
           style={{
             opacity: getSpotlightOpacity(),
-            animation: isWinner ? "pulse 2s infinite" : "",
+            animation: isWinner ? "winner-pulse 2s infinite" : "",
           }}
         ></div>
+      )}
+
+      {/* Confetti effect for winner */}
+      {isWinner && (
+        <div className="absolute -inset-10 overflow-hidden pointer-events-none">
+          <div className="confetti-container">
+            {[...Array(20)].map((_, i) => (
+              <div 
+                key={i}
+                className={`confetti confetti-${i % 5}`}
+                style={{
+                  left: `${Math.random() * 100}%`,
+                  animationDelay: `${Math.random() * 3}s`,
+                  animationDuration: `${3 + Math.random() * 2}s`
+                }}
+              ></div>
+            ))}
+          </div>
+        </div>
       )}
 
       <div
@@ -223,7 +386,7 @@ export default function Player({
                       : "border-gray-700 bg-gray-800/80"
                   }
                   ${
-                    !showCards && hand
+                    !showCards && hand && isActive
                       ? "cursor-pointer hover:shadow-lg hover:shadow-green-900/50"
                       : ""
                   }
@@ -238,172 +401,185 @@ export default function Player({
             : ""
         }`}
         style={{
-          boxShadow: isWinner
-            ? "0 0 15px rgba(250, 204, 21, 0.5)"
-            : isTurn
-            ? "0 0 12px rgba(96, 165, 250, 0.4)"
-            : "0 4px 6px rgba(0, 0, 0, 0.2)",
+          ...(isWinner ? winnerGlowStyle : {
+            boxShadow: isTurn
+              ? "0 0 12px rgba(96, 165, 250, 0.4)"
+              : "0 4px 6px rgba(0, 0, 0, 0.2)"
+          })
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {showAction && getActionDisplay()}
 
-        <div className="flex flex-col items-center">
-          {/* Cards container with improved layout */}
-          <div className="flex gap-1.5 mb-3 relative group">
-            {hand ? (
-              <>
-                <div className="transform group-hover:rotate-[-5deg] group-hover:translate-x-[-2px] transition-all duration-300">
-                  <Card
-                    card={{
-                      ...hand[0],
-                      // Force cards to be face-up when hovered or during showdown
-                      faceUp: isHovered || showCards || isActive,
-                    }}
-                    hidden={false}
-                  />
-                </div>
-                <div className="transform group-hover:rotate-[5deg] group-hover:translate-x-[2px] transition-all duration-300">
-                  <Card
-                    card={{
-                      ...hand[1],
-                      // Force cards to be face-up when hovered or during showdown
-                      faceUp: isHovered || showCards || isActive,
-                    }}
-                    hidden={false}
-                  />
-                </div>
+        {/* Personality Pill - Shows personality type above player */}
+        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-gray-800/90 text-white text-xs font-medium border border-gray-700 flex items-center gap-1.5 backdrop-blur-sm">
+          <span>{getPersonalityIcon()}</span>
+          <span className="capitalize">{getNicknameAndPersonality().personality}</span>
+        </div>
 
-                {/* Improved card tooltip on hover */}
-                {isHovered && !showCards && !isActive && (
-                  <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black/90 text-white text-xs py-2 px-4 rounded-md whitespace-nowrap font-medium shadow-xl backdrop-blur-sm border border-gray-700 z-50">
-                    <span
-                      className={
-                        hand[0].suit === "hearts" || hand[0].suit === "diamonds"
-                          ? "text-red-400"
-                          : "text-white"
-                      }
-                    >
-                      {hand[0].rank}
-                      {getCardSuitSymbol(hand[0].suit)}
-                    </span>{" "}
-                    <span
-                      className={
-                        hand[1].suit === "hearts" || hand[1].suit === "diamonds"
-                          ? "text-red-400"
-                          : "text-white"
-                      }
-                    >
-                      {hand[1].rank}
-                      {getCardSuitSymbol(hand[1].suit)}
-                    </span>
-                  </div>
-                )}
-              </>
-            ) : (
-              <div className="text-gray-400 px-4 py-2">No cards</div>
-            )}
-          </div>
-
-          {/* Player info section with enhanced layout */}
-          <div className="flex items-center gap-2 mb-1.5">
-            {/* Avatar circle with first letter of name */}
-            <div
-              className={`${getAvatarColor()} w-6 h-6 rounded-full flex items-center justify-center text-white font-bold ${
-                isDealer ? "ring-2 ring-white" : ""
-              }`}
-            >
-              {name.charAt(0).toUpperCase()}
-            </div>
-
-            <div
-              className={`font-bold text-lg ${
-                chips <= 0
-                  ? "text-red-500"
-                  : isWinner
-                  ? "text-yellow-300"
-                  : "text-white"
-              }`}
-            >
-              {name}
-            </div>
-
-            {/* Status indicators */}
-            <div className="flex gap-1">
-              {isDealer && (
-                <div className="bg-white text-black text-xs px-1.5 py-0.5 rounded-full font-bold">
-                  D
-                </div>
-              )}
-              {chips <= 0 && (
-                <div className="bg-red-700 text-white text-xs px-1.5 py-0.5 rounded-full animate-pulse">
-                  OUT
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* Add an overlay "X" for bankrupt players */}
-          {chips <= 0 && (
-            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-              <div className="text-red-600 text-6xl font-bold opacity-40">
-                ✖
+        {/* Player cards */}
+        <div className="relative flex justify-center mb-3 mt-0.5">
+          {hand ? (
+            <>
+              <div
+                className={`transform transition-all duration-500 ${
+                  isHovered || showCards
+                    ? "rotate-0 translate-x-[-9px]"
+                    : "rotate-[-5deg] translate-x-[-12px]"
+                }`}
+              >
+                <Card
+                  card={hand[0]}
+                  faceUp={isHovered || showCards}
+                />
               </div>
+              <div
+                className={`transform transition-all duration-500 ${
+                  isHovered || showCards
+                    ? "rotate-0 translate-x-[9px]"
+                    : "rotate-[5deg] translate-x-[12px]"
+                }`}
+              >
+                <Card
+                  card={hand[1]}
+                  faceUp={isHovered || showCards}
+                />
+              </div>
+
+              {/* Card value tooltip that appears on hover */}
+              {(isHovered || showCards) && hand[0] && hand[1] && (
+                <div
+                  className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900/90 text-white 
+                          px-2.5 py-1 rounded text-sm font-semibold shadow-lg z-20 opacity-90
+                          border border-gray-700 backdrop-blur-sm"
+                >
+                  <span
+                    className={`${
+                      hand[0].suit === "hearts" || hand[0].suit === "diamonds"
+                        ? "text-red-500"
+                        : "text-white"
+                    }`}
+                  >
+                    {hand[0].rank}
+                    {getCardSuitSymbol(hand[0].suit)}
+                  </span>{" "}
+                  <span
+                    className={`${
+                      hand[1].suit === "hearts" || hand[1].suit === "diamonds"
+                        ? "text-red-500"
+                        : "text-white"
+                    }`}
+                  >
+                    {hand[1].rank}
+                    {getCardSuitSymbol(hand[1].suit)}
+                  </span>
+                </div>
+              )}
+            </>
+          ) : (
+            <div className="h-16 flex items-center justify-center text-gray-500">
+              No cards
             </div>
           )}
 
-          {/* Better chips and status display */}
-          <div className="flex flex-wrap justify-center gap-2 text-sm mt-1">
+          {/* Dealer button */}
+          {isDealer && (
             <div
-              className={`px-2 py-1 rounded-full ${
-                chips <= 0
-                  ? "bg-red-900/50 text-red-500 line-through"
-                  : "bg-green-900/50 text-green-300"
-              } font-mono`}
+              className="absolute -top-2 -left-3 bg-white text-gray-900 w-6 h-6 rounded-full 
+                      flex items-center justify-center text-xs font-bold border-2 border-gray-700 shadow"
+            >
+              D
+            </div>
+          )}
+        </div>
+
+        {/* Player info section */}
+        <div className="flex flex-col">
+          {/* Player name and avatar */}
+          <div className="flex items-center mb-2 relative">
+            <div
+              className={`w-8 h-8 rounded-full mr-2 relative flex shadow-md overflow-hidden
+                        transition-all duration-300 ${
+                          animateAvatar && isTurn ? "scale-110" : ""
+                        }`}
+            >
+              {getAvatarDesign()}
+            </div>
+
+            <div
+              className={`text-sm font-medium flex-1 truncate ${
+                isActive ? "text-white" : "text-gray-400"
+              }`}
+            >
+              {getDisplayName()}
+            </div>
+          </div>
+
+          {/* Chips and bet info */}
+          <div
+            className={`flex justify-between items-center text-sm ${
+              isActive ? "opacity-100" : "opacity-70"
+            }`}
+          >
+            <div
+              className={`font-medium ${
+                chips <= 10 ? "text-red-400" : "text-green-400"
+              }`}
             >
               ${chips}
             </div>
             {currentBet > 0 && (
-              <div className="bg-yellow-900/50 px-2 py-1 rounded-full text-yellow-300 font-mono">
+              <div className="font-medium text-amber-400">
                 Bet: ${currentBet}
               </div>
             )}
             {isAllIn && (
-              <div className="bg-red-900/50 px-2 py-1 rounded-full text-red-300 font-bold animate-pulse">
+              <div className="ml-auto text-xs px-1.5 py-0.5 bg-red-900/70 rounded text-white font-bold animate-pulse">
                 ALL IN
-              </div>
-            )}
-            {!isActive && chips > 0 && (
-              <div className="bg-gray-900/50 px-2 py-1 rounded-full text-gray-300">
-                FOLDED
               </div>
             )}
           </div>
 
-          {/* Enhanced equity display with better visual representation */}
+          {/* Equity bar */}
           {equity !== undefined && isActive && hand && (
-            <div className="mt-2 w-full px-1">
-              <div className="text-xs text-gray-400 mb-0.5 flex justify-between">
-                <span>Equity: </span>
-                <span className={getEquityColor()}>{equity.toFixed(1)}%</span>
+            <div className="mt-2">
+              <div className="flex justify-between items-center text-xs mb-1">
+                <div className={`${getEquityColor()} font-medium`}>
+                  Equity: {equity !== undefined ? equity.toFixed(1) + "%" : "N/A"}
+                </div>
               </div>
-              <div className="w-full bg-gray-700 h-1.5 rounded-full overflow-hidden">
+              <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">
                 <div
-                  className={`h-full ${getEquityBackground()}`}
-                  style={{ width: `${equity}%` }}
+                  className={`h-full ${getEquityBackground()} transition-all duration-500`}
+                  style={{ width: `${equity || 0}%` }}
                 ></div>
               </div>
             </div>
           )}
-
-          {/* Enhanced winner badge */}
-          {isWinner && (
-            <div className="mt-2.5 bg-gradient-to-r from-yellow-600 to-amber-500 text-black px-3 py-1 rounded-full text-xs font-bold shadow-md animate-pulse">
-              WINNER! 🏆
-            </div>
-          )}
         </div>
+
+        {/* Enhanced Winner indicator */}
+        {isWinner && (
+          <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center z-30">
+            <div className="text-5xl mb-2 winner-trophy">🏆</div>
+            <div className="bg-gradient-to-r from-yellow-500 via-amber-500 to-yellow-500 text-white font-bold px-4 py-1.5 rounded-lg shadow-lg text-lg winner-banner">
+              WINNER
+            </div>
+          </div>
+        )}
+
+        {/* Fold overlay */}
+        {!isActive && hand && (
+          <div
+            className="absolute inset-0 bg-black/60 rounded-lg flex items-center justify-center backdrop-blur-sm"
+            style={{ backdropFilter: "blur(2px)" }}
+          >
+            <div className="text-white font-bold bg-red-900/80 px-3 py-1 rounded shadow">
+              FOLDED
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

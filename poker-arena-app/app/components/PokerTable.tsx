@@ -25,29 +25,30 @@ export default function PokerTable({ gameState }: PokerTableProps) {
       {/* Wooden table base - darker bottom layer for depth */}
       <div className="absolute inset-1 rounded-[50%] bg-gray-950 shadow-2xl"></div>
 
-      {/* Outer table frame - mahogany rail with improved grain texture */}
+      {/* Outer table frame - upgraded to rich dark cherry wood rail with improved grain texture */}
       <div
         className="absolute inset-0 rounded-[50%] shadow-2xl"
         style={{
           backgroundImage: `
-               linear-gradient(to bottom, rgba(85, 33, 33, 0.95), rgba(52, 17, 17, 0.95)),
+               linear-gradient(to bottom, rgba(75, 23, 23, 0.95), rgba(42, 12, 12, 0.95)),
                url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")
              `,
           boxShadow:
-            "0 8px 24px rgba(0,0,0,0.4), inset 0 2px 8px rgba(255,255,255,0.1)",
+            "0 8px 24px rgba(0,0,0,0.5), inset 0 2px 8px rgba(255,255,255,0.15)",
         }}
       >
-        {/* Decorative inlay on the wooden rail */}
-        <div className="absolute inset-2 rounded-[50%] border-[1px] border-rose-900 opacity-20"></div>
-        <div className="absolute inset-3 rounded-[50%] border-[1px] border-gray-300 opacity-10"></div>
+        {/* Decorative gold inlay on the wooden rail */}
+        <div className="absolute inset-2 rounded-[50%] border-[1px] border-amber-700 opacity-30"></div>
+        <div className="absolute inset-3 rounded-[50%] border-[1px] border-amber-300 opacity-20"></div>
       </div>
 
-      {/* Inner felt table with enhanced texture and subtle gradient */}
+      {/* Inner felt table with enhanced texture and premium color */}
       <div
-        className="absolute inset-4 rounded-[50%] bg-green-800 shadow-inner felt-texture"
+        className="absolute inset-4 rounded-[50%] shadow-inner felt-texture"
         style={{
+          background: 'linear-gradient(to bottom, #0c4a6e, #082f49)', // Deep blue felt color
           boxShadow:
-            "inset 0 0 40px rgba(0,0,0,0.5), inset 0 0 80px rgba(0,0,0,0.2)",
+            "inset 0 0 40px rgba(0,0,0,0.5), inset 0 0 80px rgba(0,0,0,0.3)",
         }}
       >
         {/* Center spotlight effect */}
@@ -55,15 +56,17 @@ export default function PokerTable({ gameState }: PokerTableProps) {
           className="absolute inset-0 rounded-[50%] opacity-20"
           style={{
             background:
-              "radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 60%)",
+              "radial-gradient(circle at center, rgba(255,255,255,0.08) 0%, transparent 60%)",
           }}
         ></div>
 
-        {/* Table logo watermark */}
-        <div className="table-logo"></div>
+        {/* Premium table logo watermark */}
+        <div className="absolute inset-0 rounded-[50%] flex items-center justify-center opacity-10">
+          <div className="text-4xl font-serif text-white">♠♣♦♥</div>
+        </div>
 
-        {/* Subtle dealer positions markers - removed horizontal ones */}
-        <div className="absolute h-full w-full rounded-[50%] opacity-10">
+        {/* Subtle dealer positions markers */}
+        <div className="absolute h-full w-full rounded-[50%] opacity-15">
           {[...Array(8)].map((_, i) => {
             // Skip horizontal lines (position 2 and 6)
             if (i === 2 || i === 6) return null
