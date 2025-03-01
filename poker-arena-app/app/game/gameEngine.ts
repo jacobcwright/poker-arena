@@ -15,6 +15,7 @@ import {
 } from "./pokerAI"
 import { evaluateHand, compareHands, HandResult } from "./handEvaluator"
 import { calculateEquity } from "./equityCalculator"
+import { publishRoundResults } from "../services/supabaseService"
 
 export const createNewDeck = (): Card[] => {
   const suits: Suit[] = ["hearts", "diamonds", "clubs", "spades"]
@@ -99,7 +100,7 @@ export const createInitialGameState = (playerCount: number): GameState => {
       name: `Player ${i + 1}`, // The actual name will be set by page.tsx
       personality: personality.personality, // Store personality separately
       hand: null,
-      chips: 100, // Starting chips
+      chips: 200, // Starting chips
       currentBet: 0,
       isActive: true,
       isAllIn: false,
@@ -757,7 +758,9 @@ export const determineWinners = (
 }
 
 // Reset for a new hand
-export const setupNextHand = (gameState: GameState): GameState => {
+export const setupNextHand = async (
+  gameState: GameState
+): Promise<GameState> => {
   // Deep clone the players array to preserve chip counts
   const newPlayers = gameState.players.map((player) => ({ ...player }))
 
@@ -808,6 +811,9 @@ export const setupNextHand = (gameState: GameState): GameState => {
     `New hand begins. Round ${newState.round}`,
     undefined
   )
+
+  // Publish round results to Supabase
+  await publishRoundResults(newState.players)
 
   // Initialize blinds and set the active player
   return initializeBlinds(updatedState)
@@ -881,7 +887,8 @@ export const roundLoop = async (
       }
 ): Promise<GameState> => {
   // Prepare new round: reset round-specific info while keeping persistent data (chips, etc.)
-  let currentState = setupNextHand(gameState)
+  console.log("========== gameState", gameState)
+  let currentState = await setupNextHand(gameState)
 
   // Deal player cards
   currentState = dealPlayerCards(currentState)
@@ -918,6 +925,12 @@ export const roundLoop = async (
       handResults: handDescriptions,
     }
     setGameState(finalState)
+
+    console.log("finalState", finalState)
+    console.log("finalState.players", finalState.players)
+
+    // Publish round results to Supabase
+
     await wait(delay * 3)
     return finalState
   }
@@ -995,6 +1008,10 @@ export const roundLoop = async (
     handResults: handDescriptions,
   }
   setGameState(finalState)
+
+  // Publish round results to Supabase
+  await publishRoundResults(finalState.players)
+
   await wait(delay * 3)
 
   return finalState
