@@ -85,7 +85,12 @@ export const createInitialGameState = (playerCount: number): GameState => {
 }
 
 export const dealPlayerCards = (gameState: GameState): GameState => {
-  const newState = { ...gameState }
+  const newState = {
+    ...gameState,
+    // Clear winner information when dealing new cards
+    winningPlayers: undefined,
+    handResults: undefined,
+  }
   const { deck, players } = newState
 
   // Deal two cards to each player
@@ -117,7 +122,12 @@ export const dealPlayerCards = (gameState: GameState): GameState => {
 }
 
 export const dealFlop = (gameState: GameState): GameState => {
-  const newState = { ...gameState }
+  const newState = {
+    ...gameState,
+    // Clear winner information when dealing new cards
+    winningPlayers: undefined,
+    handResults: undefined,
+  }
   const { deck } = newState
 
   // Burn one card
@@ -141,7 +151,12 @@ export const dealFlop = (gameState: GameState): GameState => {
 }
 
 export const dealTurn = (gameState: GameState): GameState => {
-  const newState = { ...gameState }
+  const newState = {
+    ...gameState,
+    // Clear winner information when dealing new cards
+    winningPlayers: undefined,
+    handResults: undefined,
+  }
   const { deck } = newState
 
   // Burn one card
@@ -163,7 +178,12 @@ export const dealTurn = (gameState: GameState): GameState => {
 }
 
 export const dealRiver = (gameState: GameState): GameState => {
-  const newState = { ...gameState }
+  const newState = {
+    ...gameState,
+    // Clear winner information when dealing new cards
+    winningPlayers: undefined,
+    handResults: undefined,
+  }
   const { deck } = newState
 
   // Burn one card
@@ -618,6 +638,9 @@ export const setupNextHand = (gameState: GameState): GameState => {
   const newState: GameState = {
     ...gameState,
     players: newPlayers,
+    // Explicitly clear winner information
+    winningPlayers: undefined,
+    handResults: undefined,
   }
 
   // Move dealer button to the next player with chips > 0
@@ -773,6 +796,9 @@ export const roundLoop = async (
   const showdownState = {
     ...currentState,
     currentPhase: "showdown" as GameState["currentPhase"],
+    // Clear any previous winner information to start fresh
+    winningPlayers: undefined,
+    handResults: undefined,
   }
   const stateWithEquity = calculateEquity(showdownState)
   setGameState(stateWithEquity)
@@ -782,6 +808,8 @@ export const roundLoop = async (
   const { winners, handDescriptions } = determineWinners(stateWithEquity)
   const finalState = {
     ...awardPot(stateWithEquity, winners),
+    // Only set winner information during showdown
+    currentPhase: "showdown" as GameState["currentPhase"],
     winningPlayers: winners.map((w) => w.id),
     handResults: handDescriptions,
   }
