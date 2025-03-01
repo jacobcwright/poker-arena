@@ -100,7 +100,7 @@ export const createInitialGameState = (playerCount: number): GameState => {
       name: `Player ${i + 1}`, // The actual name will be set by page.tsx
       personality: personality.personality, // Store personality separately
       hand: null,
-      chips: 100, // Starting chips
+      chips: 200, // Starting chips
       currentBet: 0,
       isActive: true,
       isAllIn: false,
