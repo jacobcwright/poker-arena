@@ -1,7 +1,7 @@
-"use client"
-import { useEffect, useState, useRef } from "react"
-import { GameState, GameStats, Player } from "./types"
-import PokerTable from "./components/PokerTable"
+"use client";
+import { useEffect, useState, useRef } from "react";
+import { GameState, GameStats, Player, PlayerAction } from "./types";
+import PokerTable from "./components/PokerTable";
 import {
   createInitialGameState,
   dealFlop,
@@ -13,235 +13,338 @@ import {
   determineWinners,
   awardPot,
   setupNextHand,
-} from "./game/gameEngine"
-import { assignPersonalities } from "./game/pokerAI"
-import { calculateEquity } from "./game/equityCalculator"
-import StatsPanel from "./components/StatsPanel"
-import ActivityLog from "./components/ActivityLog"
+} from "./game/gameEngine";
+import { assignPersonalities, determineAction } from "./game/pokerAI";
+import { calculateEquity } from "./game/equityCalculator";
+import StatsPanel from "./components/StatsPanel";
+import ActivityLog from "./components/ActivityLog";
 
 export default function Home() {
-  const [playerCount, setPlayerCount] = useState(4)
-  const [isGameRunning, setIsGameRunning] = useState(false)
-  const [gameState, setGameState] = useState<GameState | null>(null)
-  const [gamePhaseDelay, setGamePhaseDelay] = useState(2000) // milliseconds
-  const roundRef = useRef(0)
-  const [gameStats, setGameStats] = useState<GameStats>(createInitialStats())
-  const [isPaused, setIsPaused] = useState(false)
+  const [playerCount, setPlayerCount] = useState(4);
+  const [isGameRunning, setIsGameRunning] = useState(false);
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gamePhaseDelay, setGamePhaseDelay] = useState(2000); // milliseconds
+  const roundRef = useRef(0);
+  const [gameStats, setGameStats] = useState<GameStats>(createInitialStats());
+  const [isPaused, setIsPaused] = useState(false);
   const pauseResumeRef = useRef<{ resolve: (() => void) | null }>({
     resolve: null,
-  })
-  const isPausedRef = useRef(false)
-  const [isLogOpen, setIsLogOpen] = useState(false)
+  });
+  const isPausedRef = useRef(false);
+  const [isLogOpen, setIsLogOpen] = useState(false);
+  const [playerTypes, setPlayerTypes] = useState<Record<number, string>>({}); // Track player types
 
   // Initialize game state when player count changes
   useEffect(() => {
-    setGameState(createInitialGameState(playerCount))
-  }, [playerCount])
+    const initialState = createInitialGameState(playerCount);
+    setGameState(initialState);
+
+    // Initialize player types with default "AI"
+    const initialPlayerTypes: Record<number, string> = {};
+    initialState.players.forEach((player) => {
+      initialPlayerTypes[player.id] = "AI";
+    });
+    setPlayerTypes(initialPlayerTypes);
+  }, [playerCount]);
+
+  const handlePlayerTypeChange = (playerId: number, type: string) => {
+    setPlayerTypes((prev) => ({
+      ...prev,
+      [playerId]: type,
+    }));
+  };
+
+  // Add this function to handle regular AI decisions
+  const getRegularAIDecision = (player: Player, gameState: GameState) => {
+    // Use the existing AI logic from your game engine
+    return determineAction(gameState, player.id);
+  };
+
+  const getPlayerDecision = async (player: Player, gameState: GameState) => {
+    const playerType = playerTypes[player.id];
+
+    if (playerType === "Llama") {
+      // Route to Ollama API
+      try {
+        const response = await fetch("/api/ollama", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({
+            prompt: generatePokerPrompt(player, gameState),
+            model: "deepseek-r1:70b",
+            temperature: 0.7,
+            max_tokens: 500,
+          }),
+        });
+
+        if (!response.ok) {
+          throw new Error("Failed to get Llama decision");
+        }
+
+        const data = await response.json();
+        return parseDecisionFromLlama(data.response);
+      } catch (error) {
+        console.error("Error getting Llama decision:", error);
+        // Fallback to regular AI if Llama fails
+        return getRegularAIDecision(player, gameState);
+      }
+    } else {
+      // Use regular AI decision
+      return getRegularAIDecision(player, gameState);
+    }
+  };
+
+  // Helper functions for Llama integration
+  const generatePokerPrompt = (player: Player, gameState: GameState) => {
+    return `You are playing poker. 
+    Your cards: ${
+      player.hand?.map((c) => `${c.rank}${c.suit}`).join(", ") || ""
+    }
+    Community cards: ${
+      gameState.communityCards?.map((c) => `${c.rank}${c.suit}`).join(", ") ||
+      "None yet"
+    }
+    Current pot: $${gameState.pot}
+    Your chips: $${player.chips}
+    Current bet to call: $${
+      (gameState.players.find((p) => p.id === player.id)?.currentBet || 0) -
+      (player.currentBet || 0)
+    }
+    
+    What action would you take? Choose one: fold, check, call, raise (with amount).`;
+  };
+
+  const parseDecisionFromLlama = (response: string) => {
+    // Simple parsing logic - can be improved
+    const lowerResponse = response.toLowerCase();
+    if (lowerResponse.includes("fold"))
+      return { action: "fold" as PlayerAction };
+    if (lowerResponse.includes("check"))
+      return { action: "check" as PlayerAction };
+    if (lowerResponse.includes("call"))
+      return { action: "call" as PlayerAction };
+
+    // Try to extract raise amount
+    if (lowerResponse.includes("raise")) {
+      const match = lowerResponse.match(/raise.*?(\d+)/);
+      const betAmount = match ? parseInt(match[1]) : 20; // Default raise
+      return { action: "raise" as PlayerAction, betAmount };
+    }
+
+    // Default to call if parsing fails
+    return { action: "call" as PlayerAction };
+  };
 
   // Update the ref when the state changes
   useEffect(() => {
-    isPausedRef.current = isPaused
-  }, [isPaused])
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
 
   // Refactor the game loop to better handle pausing
   useEffect(() => {
-    if (!isGameRunning) return
+    if (!isGameRunning) return;
 
-    let isMounted = true
+    let isMounted = true;
 
     const waitWithPauseCheck = async (ms: number) => {
       // Wait for the specified time
       await new Promise<void>((resolve) => {
-        setTimeout(resolve, ms)
-      })
+        setTimeout(resolve, ms);
+      });
 
       // Check for pause after the timer
       while (isPausedRef.current && isMounted) {
         // Wait in small increments while paused
-        await new Promise((r) => setTimeout(r, 100))
+        await new Promise((r) => setTimeout(r, 100));
       }
-    }
+    };
 
     const gameLoop = async () => {
-      if (!isMounted) return
+      if (!isMounted) return;
 
       // Start with a fresh game state for this round
       const freshState = {
         ...createInitialGameState(playerCount),
         round: roundRef.current,
-      }
+      };
 
       // Assign AI personalities to players
-      assignPersonalities(freshState.players)
+      assignPersonalities(freshState.players);
 
       // Initialize with blinds
-      const initializedState = initializeBlinds(freshState)
-      if (!isMounted) return
-      setGameState(initializedState)
-      await waitWithPauseCheck(1000)
+      const initializedState = initializeBlinds(freshState);
+      if (!isMounted) return;
+      setGameState(initializedState);
+      await waitWithPauseCheck(1000);
 
       // Deal player cards
-      const dealingState = dealPlayerCards(initializedState)
-      if (!isMounted) return
-      setGameState(dealingState)
-      await waitWithPauseCheck(gamePhaseDelay)
+      const dealingState = dealPlayerCards(initializedState);
+      if (!isMounted) return;
+      setGameState(dealingState);
+      await waitWithPauseCheck(gamePhaseDelay);
 
       // Pre-flop betting round
       let currentState = await processBettingRound(
         dealingState,
         setGameState,
-        gamePhaseDelay / 2
-      )
-      if (!isMounted) return
+        gamePhaseDelay / 2,
+        getPlayerDecision
+      );
+      if (!isMounted) return;
 
       // Deal flop (3 cards)
-      const flopState = dealFlop(currentState)
-      if (!isMounted) return
-      setGameState(flopState)
-      await waitWithPauseCheck(gamePhaseDelay)
+      const flopState = dealFlop(currentState);
+      if (!isMounted) return;
+      setGameState(flopState);
+      await waitWithPauseCheck(gamePhaseDelay);
 
       // Flop betting round
       currentState = await processBettingRound(
         flopState,
         setGameState,
-        gamePhaseDelay / 2
-      )
-      if (!isMounted) return
+        gamePhaseDelay / 2,
+        getPlayerDecision
+      );
+      if (!isMounted) return;
 
       // Deal turn (1 card)
-      const turnState = dealTurn(currentState)
-      if (!isMounted) return
-      setGameState(turnState)
-      await waitWithPauseCheck(gamePhaseDelay)
+      const turnState = dealTurn(currentState);
+      if (!isMounted) return;
+      setGameState(turnState);
+      await waitWithPauseCheck(gamePhaseDelay);
 
       // Turn betting round
       currentState = await processBettingRound(
         turnState,
         setGameState,
-        gamePhaseDelay / 2
-      )
-      if (!isMounted) return
+        gamePhaseDelay / 2,
+        getPlayerDecision
+      );
+      if (!isMounted) return;
 
       // Deal river (1 card)
-      const riverState = dealRiver(currentState)
-      if (!isMounted) return
-      setGameState(riverState)
-      await waitWithPauseCheck(gamePhaseDelay)
+      const riverState = dealRiver(currentState);
+      if (!isMounted) return;
+      setGameState(riverState);
+      await waitWithPauseCheck(gamePhaseDelay);
 
       // River betting round
       currentState = await processBettingRound(
         riverState,
         setGameState,
-        gamePhaseDelay / 2
-      )
-      if (!isMounted) return
+        gamePhaseDelay / 2,
+        getPlayerDecision
+      );
+      if (!isMounted) return;
 
       // Showdown phase
-      const showdownState = { ...currentState, currentPhase: "showdown" }
+      const showdownState = { ...currentState, currentPhase: "showdown" };
 
       // Calculate final equity before determining winners
-      const stateWithEquity = calculateEquity(showdownState as GameState)
-      setGameState(stateWithEquity)
-      await waitWithPauseCheck(500) // Short delay to show final equity
+      const stateWithEquity = calculateEquity(showdownState as GameState);
+      setGameState(stateWithEquity);
+      await waitWithPauseCheck(500); // Short delay to show final equity
 
       // Determine winners with hand descriptions
-      const { winners, handDescriptions } = determineWinners(stateWithEquity)
+      const { winners, handDescriptions } = determineWinners(stateWithEquity);
 
       // Make sure we're correctly handling the hand descriptions
-      console.log("Hand descriptions:", handDescriptions) // Add logging to debug
+      console.log("Hand descriptions:", handDescriptions); // Add logging to debug
 
       // Update state with winners and hand results
       const finalState = {
         ...awardPot(stateWithEquity, winners),
         winningPlayers: winners.map((w) => w.id),
         handResults: handDescriptions,
-      }
+      };
 
-      if (!isMounted) return
-      setGameState(finalState as GameState)
+      if (!isMounted) return;
+      setGameState(finalState as GameState);
       // Increase showdown delay to give more time to see results
-      await waitWithPauseCheck(gamePhaseDelay * 3) // Increased from 2x to 3x
+      await waitWithPauseCheck(gamePhaseDelay * 3); // Increased from 2x to 3x
 
       // Update statistics
-      updateStats(finalState, winners)
+      updateStats(finalState, winners);
 
       // If still running, trigger the next round
       if (isMounted && isGameRunning) {
-        roundRef.current += 1
+        roundRef.current += 1;
         // Set up the next hand for the next round
         setGameState((prevState) => {
-          if (!prevState) return setupNextHand(finalState as GameState)
-          return setupNextHand(prevState)
-        })
+          if (!prevState) return setupNextHand(finalState as GameState);
+          return setupNextHand(prevState);
+        });
 
         // Use setTimeout to break the synchronous execution chain
         setTimeout(() => {
           if (isMounted && isGameRunning) {
-            gameLoop()
+            gameLoop();
           }
-        }, 0)
+        }, 0);
       }
-    }
+    };
 
-    gameLoop()
+    gameLoop();
 
     return () => {
-      isMounted = false
-    }
-  }, [isGameRunning, playerCount, gamePhaseDelay])
+      isMounted = false;
+    };
+  }, [isGameRunning, playerCount, gamePhaseDelay]);
 
   // Toggle game on/off
   const toggleGame = () => {
     if (!isGameRunning) {
       // Create a fresh game state and reset round counter
-      roundRef.current = 1
+      roundRef.current = 1;
       setGameState({
         ...createInitialGameState(playerCount),
         round: roundRef.current,
-      })
-      setIsGameRunning(true)
+      });
+      setIsGameRunning(true);
     } else {
-      setIsGameRunning(false)
+      setIsGameRunning(false);
     }
-  }
+  };
 
   // Toggle pause state
   const togglePause = () => {
-    setIsPaused((prev) => !prev)
-  }
+    setIsPaused((prev) => !prev);
+  };
 
   // Update statistics when a round ends
   const updateStats = (state: GameState, winners: Player[]) => {
     setGameStats((prevStats: GameStats) => {
-      const newStats = { ...prevStats }
+      const newStats = { ...prevStats };
 
       // Increment hands played
-      newStats.handsPlayed += 1
+      newStats.handsPlayed += 1;
 
       // Update biggest pot if current pot is larger
       if (state.pot > newStats.biggestPot) {
-        newStats.biggestPot = state.pot
+        newStats.biggestPot = state.pot;
       }
 
       // Track winners
-      const winAmount = Math.floor(state.pot / winners.length)
+      const winAmount = Math.floor(state.pot / winners.length);
 
       winners.forEach((winner) => {
         // Update hand wins counter
-        newStats.handWins[winner.id] = (newStats.handWins[winner.id] || 0) + 1
+        newStats.handWins[winner.id] = (newStats.handWins[winner.id] || 0) + 1;
 
         // Update biggest win amount for this player
         if (
           !newStats.biggestWin[winner.id] ||
           winAmount > newStats.biggestWin[winner.id]
         ) {
-          newStats.biggestWin[winner.id] = winAmount
+          newStats.biggestWin[winner.id] = winAmount;
         }
-      })
+      });
 
-      return newStats
-    })
-  }
+      return newStats;
+    });
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -256,6 +359,29 @@ export default function Home() {
 
         {/* Game Controls */}
         <div className="bg-gray-800 rounded-lg p-6 mb-8">
+          {gameState && !isGameRunning && (
+            <div className="mt-6 border-t border-gray-700 pt-4">
+              <h3 className="text-lg font-semibold mb-3">Player Types</h3>
+              <div className="grid grid-cols-3 gap-4">
+                {gameState.players.map((player) => (
+                  <div key={player.id} className="bg-gray-700 p-3 rounded">
+                    <div className="font-medium mb-2">{player.name}</div>
+                    <select
+                      className="bg-gray-600 rounded px-3 py-1 w-full"
+                      value={playerTypes[player.id] || "AI"}
+                      onChange={(e) =>
+                        handlePlayerTypeChange(player.id, e.target.value)
+                      }
+                      disabled={isGameRunning}
+                    >
+                      <option value="AI">Regular AI</option>
+                      <option value="Llama">Llama Model</option>
+                    </select>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
           <div className="flex items-center gap-8 justify-center">
             <div className="flex items-center gap-4">
               <label htmlFor="playerCount">Players:</label>
@@ -406,7 +532,7 @@ export default function Home() {
         />
       </main>
     </div>
-  )
+  );
 }
 
 // Create an initial stats object
@@ -416,5 +542,5 @@ const createInitialStats = (): GameStats => {
     biggestPot: 0,
     biggestWin: {},
     handWins: {},
-  }
-}
+  };
+};
