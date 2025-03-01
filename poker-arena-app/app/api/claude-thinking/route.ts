@@ -19,8 +19,8 @@ export async function POST(request: NextRequest) {
     const {
       prompt,
       model = "claude-3-7-sonnet-20250219",
-      temperature = 0.7,
-      max_tokens = 2000,
+      temperature = 1,
+      max_tokens = 10000,
     } = body
 
     if (!prompt) {
@@ -44,19 +44,28 @@ export async function POST(request: NextRequest) {
       model,
       max_tokens,
       temperature,
+      thinking: {
+        type: "enabled",
+        budget_tokens: 2000,
+      },
       messages: [{ role: "user", content: prompt }],
     })
 
     console.log("Claude API response:", message)
     console.log("Claude API content:", message.content)
 
+    // Extract chain of thought and response text safely
+    let chainOfThought = ""
     let responseText = ""
 
     // Parse the response content
     if (message.content && message.content.length > 0) {
       // Check for content blocks and extract text
       for (const block of message.content) {
-        if (block.type === "text" && "text" in block) {
+        if (block.type === "thinking" && "thinking" in block) {
+          // ThinkingBlock has a 'thinking' property, not 'text'
+          chainOfThought = String(block.thinking || "")
+        } else if (block.type === "text" && "text" in block) {
           responseText = String(block.text || "")
         }
       }
@@ -64,7 +73,8 @@ export async function POST(request: NextRequest) {
 
     return NextResponse.json({
       model: message.model,
-      response: responseText,
+      response: "<think>" + chainOfThought + "</think>\n" + responseText,
+      chainOfThought,
       done: true,
     })
   } catch (error) {

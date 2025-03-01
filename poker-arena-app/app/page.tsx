@@ -50,7 +50,7 @@ export default function Home() {
   const modelConfigs: Record<string, ModelConfig> = {
     AI: {
       // Regular AI doesn't need API configuration
-      name: "Regular AI",
+      name: "Monte-Carlo",
     },
     "DeepSeek-R1:70b": {
       name: "DeepSeek-R1:70b",
@@ -58,6 +58,13 @@ export default function Home() {
       model: "deepseek-r1:70b",
       temperature: 0.7,
       max_tokens: 3000,
+    },
+    "Claude-3.7-Thinking": {
+      name: "Claude-3.7-Thinking",
+      apiEndpoint: "/api/claude-thinking",
+      model: "claude-3-7-sonnet-20250219",
+      temperature: 1,
+      max_tokens: 10000,
     },
     "Claude-3.7": {
       name: "Claude-3.7",
@@ -117,7 +124,7 @@ export default function Home() {
     const playerType = playerTypes[player.id]
 
     // Regular AI decision
-    if (playerType === "AI" || !modelConfigs[playerType]) {
+    if (playerType === "Monte-Carlo" || !modelConfigs[playerType]) {
       return getRegularAIDecision(player, gameState)
     }
 
@@ -203,7 +210,8 @@ export default function Home() {
     const lowerResponse = response.toLowerCase()
     const thinkIndex = lowerResponse.indexOf("</think>")
 
-    const chainOfThought = response.substring(7, thinkIndex)
+    const chainOfThought =
+      thinkIndex !== -1 ? response.substring(7, thinkIndex) : ""
 
     // Use only the text after </think> if it exists, otherwise use the whole response
     const decisionText =
