@@ -342,7 +342,7 @@ export default function Home() {
 
             <button
               onClick={toggleGame}
-              className={`px-6 py-2 rounded-full font-semibold ${
+              className={`px-6 py-2 rounded-md font-semibold ${
                 isGameRunning
                   ? "bg-red-600 hover:bg-red-700"
                   : "bg-green-600 hover:bg-green-700"
@@ -355,7 +355,7 @@ export default function Home() {
               <button
                 onClick={togglePause}
                 disabled={!isGameRunning}
-                className={`px-6 py-2 rounded-full font-semibold ${
+                className={`px-6 py-2 rounded-md font-semibold ${
                   !isGameRunning
                     ? "bg-gray-600 cursor-not-allowed"
                     : isPaused
