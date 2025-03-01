@@ -139,17 +139,6 @@ export default function Player({
             <div className="text-white font-bold text-base relative z-10">
               {firstLetter}
             </div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_70%)]"></div>
-            <div className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center">
-              🔥
-            </div>
-            {/* Emotion display */}
-            <div
-              className="absolute -top-3 left-1/2 -translate-x-1/2 animate-pulse z-20"
-              title={getEmotionTooltip()}
-            >
-              {emotionEmoji}
-            </div>
           </div>
         )
       case "tight":
@@ -157,17 +146,6 @@ export default function Player({
           <div className="bg-gradient-to-br from-blue-700 to-blue-800 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
             <div className="text-white font-bold text-base relative z-10">
               {firstLetter}
-            </div>
-            <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.1)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.1)_50%,rgba(255,255,255,0.1)_75%,transparent_75%,transparent)]"></div>
-            <div className="absolute top-0 right-0 w-3 h-3 flex items-center justify-center">
-              🔒
-            </div>
-            {/* Emotion display */}
-            <div
-              className="absolute -top-3 left-1/2 -translate-x-1/2 animate-pulse z-20"
-              title={getEmotionTooltip()}
-            >
-              {emotionEmoji}
             </div>
           </div>
         )
@@ -177,17 +155,6 @@ export default function Player({
             <div className="text-white font-bold text-base relative z-10">
               {firstLetter}
             </div>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.2)_0%,transparent_70%)]"></div>
-            <div className="absolute top-0 left-0 w-3 h-3 flex items-center justify-center">
-              🧮
-            </div>
-            {/* Emotion display */}
-            <div
-              className="absolute -top-3 left-1/2 -translate-x-1/2 animate-pulse z-20"
-              title={getEmotionTooltip()}
-            >
-              {emotionEmoji}
-            </div>
           </div>
         )
       case "loose":
@@ -195,17 +162,6 @@ export default function Player({
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
             <div className="text-white font-bold text-base relative z-10">
               {firstLetter}
-            </div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,transparent_60%)]"></div>
-            <div className="absolute bottom-0 left-0 w-3 h-3 flex items-center justify-center">
-              🎲
-            </div>
-            {/* Emotion display */}
-            <div
-              className="absolute -top-3 left-1/2 -translate-x-1/2 animate-pulse z-20"
-              title={getEmotionTooltip()}
-            >
-              {emotionEmoji}
             </div>
           </div>
         )
@@ -216,16 +172,6 @@ export default function Player({
               {firstLetter}
             </div>
             <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.1)_0%,transparent_50%,rgba(255,255,255,0.1)_100%)]"></div>
-            <div className="absolute top-0 right-0 w-3 h-3 flex items-center justify-center">
-              🃏
-            </div>
-            {/* Emotion display */}
-            <div
-              className="absolute -top-3 left-1/2 -translate-x-1/2 animate-pulse z-20"
-              title={getEmotionTooltip()}
-            >
-              {emotionEmoji}
-            </div>
           </div>
         )
       default:
@@ -235,13 +181,6 @@ export default function Player({
             className={`${getAvatarColor()} w-full h-full rounded-full flex items-center justify-center`}
           >
             <div className="text-white font-bold text-base">{firstLetter}</div>
-            {/* Emotion display */}
-            <div
-              className="absolute -top-3 left-1/2 -translate-x-1/2 animate-pulse z-20"
-              title={getEmotionTooltip()}
-            >
-              {emotionEmoji}
-            </div>
           </div>
         )
     }
