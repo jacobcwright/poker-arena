@@ -37,6 +37,8 @@ export default function Player({
   } | null>(null)
   const [isHovered, setIsHovered] = useState(false)
   const [animateAvatar, setAnimateAvatar] = useState(false)
+  const [showEmotionAnimation, setShowEmotionAnimation] = useState(false)
+  const [previousIsTurn, setPreviousIsTurn] = useState(isTurn)
 
   // Function to get emoji for a card suit
   const getCardSuitSymbol = (suit: string): string => {
@@ -57,56 +59,6 @@ export default function Player({
     // Default values
     let nickname = name
     let personality = "regular"
-
-    // If name has a nickname in quotes, extract it
-    const nicknameMatch = name.match(/'([^']+)'/)
-    if (nicknameMatch && nicknameMatch[1]) {
-      nickname = nicknameMatch[1]
-
-      // Try to identify personality from nickname
-      if (
-        nickname.includes("All-In") ||
-        nickname.includes("Big") ||
-        nickname.includes("Shark")
-      ) {
-        personality = "aggressive"
-      } else if (
-        nickname.includes("Fold") ||
-        nickname.includes("Tight") ||
-        nickname.includes("Grinder")
-      ) {
-        personality = "tight"
-      } else if (
-        nickname.includes("Calculator") ||
-        nickname.includes("Math") ||
-        nickname.includes("Statistician")
-      ) {
-        personality = "analytical"
-      } else if (
-        nickname.includes("Lucky") ||
-        nickname.includes("Wild") ||
-        nickname.includes("Hot")
-      ) {
-        personality = "loose"
-      } else if (
-        nickname.includes("Stone") ||
-        nickname.includes("Conservative")
-      ) {
-        personality = "conservative"
-      } else if (nickname.includes("Bluff") || nickname.includes("Tell")) {
-        personality = "bluffer"
-      } else if (nickname.includes("Check") || nickname.includes("Zen")) {
-        personality = "passive"
-      } else if (nickname.includes("Card") || nickname.includes("Wild")) {
-        personality = "unpredictable"
-      } else if (nickname.includes("Money") || nickname.includes("Even")) {
-        personality = "balanced"
-      } else if (nickname.includes("Double") || nickname.includes("Flash")) {
-        personality = "risk-taker"
-      } else if (nickname.includes("Pair") || nickname.includes("Cautious")) {
-        personality = "cautious"
-      }
-    }
 
     return { nickname, personality }
   }
@@ -175,6 +127,7 @@ export default function Player({
       case "worried":
         return "😟"
       case "neutral":
+        return "😐"
       default:
         return "😶"
     }
@@ -185,6 +138,24 @@ export default function Player({
     const emotionWord = emotion.charAt(0).toUpperCase() + emotion.slice(1)
     return `${emotionWord}`
   }
+
+  // Track turn changes to trigger the emotion animation
+  useEffect(() => {
+    // If player was active but is no longer active (turn just ended)
+    if (previousIsTurn && !isTurn) {
+      setShowEmotionAnimation(true)
+
+      // Hide the animation after some time
+      const timer = setTimeout(() => {
+        setShowEmotionAnimation(false)
+      }, 3000) // 3 seconds total for animation
+
+      return () => clearTimeout(timer)
+    }
+
+    // Update the previous state
+    setPreviousIsTurn(isTurn)
+  }, [isTurn, previousIsTurn])
 
   // Get avatar design based on personality
   const getAvatarDesign = () => {
@@ -504,6 +475,22 @@ export default function Player({
             animation: isWinner ? "winner-pulse 2s infinite" : "",
           }}
         ></div>
+      )}
+
+      {/* Emotion bubble animation when player finishes their turn */}
+      {showEmotionAnimation && (
+        <div
+          className="absolute -right-12 top-0 z-40"
+          style={{
+            animation: "fade-in-out 3s forwards",
+          }}
+        >
+          <div className="relative">
+            <div className="bg-white bg-opacity-90 rounded-full p-4 shadow-lg">
+              <span className="text-4xl">{getEmotionEmoji()}</span>
+            </div>
+          </div>
+        </div>
       )}
 
       {/* Confetti effect for winner */}

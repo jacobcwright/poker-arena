@@ -30,6 +30,70 @@ interface AIDecision {
   reasoningSummary?: string
 }
 
+// Add global styles for animations
+const globalStyles = `
+  @keyframes fade-in-out {
+    0% { opacity: 0; transform: translateY(10px) scale(0.8); }
+    15% { opacity: 1; transform: translateY(0) scale(1); }
+    75% { opacity: 1; transform: translateY(0) scale(1); }
+    100% { opacity: 0; transform: translateY(-15px) scale(0.8); }
+  }
+
+  @keyframes rise-fade {
+    0% { opacity: 0; transform: translate(-50%, 10px); }
+    20% { opacity: 1; transform: translate(-50%, 0); }
+    80% { opacity: 1; transform: translate(-50%, 0); }
+    100% { opacity: 0; transform: translate(-50%, -20px); }
+  }
+
+  @keyframes winner-pulse {
+    0% { opacity: 0.4; }
+    50% { opacity: 0.6; }
+    100% { opacity: 0.4; }
+  }
+
+  .confetti {
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    background-color: #ffcc00;
+    border-radius: 50%;
+    opacity: 0.8;
+    animation: confetti-fall 3s linear infinite;
+  }
+
+  .confetti-0 { background-color: #FFD700; }
+  .confetti-1 { background-color: #FF8C00; }
+  .confetti-2 { background-color: #FF4500; }
+  .confetti-3 { background-color: #7CFC00; }
+  .confetti-4 { background-color: #00BFFF; }
+
+  @keyframes confetti-fall {
+    0% { transform: translateY(-50px) rotate(0deg); opacity: 1; }
+    100% { transform: translateY(150px) rotate(360deg); opacity: 0; }
+  }
+
+  .winner-trophy {
+    animation: bounce 0.5s ease infinite alternate;
+  }
+
+  @keyframes bounce {
+    from { transform: translateY(0); }
+    to { transform: translateY(-5px); }
+  }
+
+  .winner-banner {
+    animation: shimmer 1.5s linear infinite;
+    background-size: 200% 100%;
+    background-image: linear-gradient(to right, #f59e0b 0%, #fbbf24 25%, #f59e0b 50%, #fbbf24 75%, #f59e0b 100%);
+  }
+
+  @keyframes shimmer {
+    0% { background-position: 0% 0; }
+    100% { background-position: 200% 0; }
+  }
+`
+
 export default function Home() {
   const [playerCount, setPlayerCount] = useState(4)
   const [isGameRunning, setIsGameRunning] = useState(false)
@@ -486,6 +550,9 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
+      {/* Add the global styles */}
+      <style dangerouslySetInnerHTML={{ __html: globalStyles }} />
+
       <main className="max-w-6xl mx-auto">
         {/* Header */}
         <header className="text-center mb-8">
