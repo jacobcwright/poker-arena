@@ -22,6 +22,23 @@ export interface Card {
 
 export type Hand = [Card, Card]
 
+export type Emotion =
+  | "neutral"
+  | "happy"
+  | "excited"
+  | "nervous"
+  | "thoughtful"
+  | "suspicious"
+  | "confident"
+  | "disappointed"
+  | "frustrated"
+  | "surprised"
+  | "poker-face"
+  | "bluffing"
+  | "calculating"
+  | "intimidating"
+  | "worried"
+
 export interface Player {
   id: number
   name: string
@@ -33,6 +50,8 @@ export interface Player {
   isDealer: boolean
   isTurn: boolean
   equity?: number // Odds of winning as a percentage
+  emotion?: Emotion // Current displayed emotion
+  personality?: string // Player's poker personality/style
 }
 
 export type GamePhase =
@@ -54,6 +73,8 @@ export interface ActivityLogEntry {
   phase: GamePhase
   equity?: number // Player's equity at the time of this action
   chainOfThought?: string // AI's thought process for this action
+  reasoningSummary?: string // A summary of the AI's reasoning
+  emotion?: Emotion // Player's emotion during this action
 }
 
 export interface GameState {

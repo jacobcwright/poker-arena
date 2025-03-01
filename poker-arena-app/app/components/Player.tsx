@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Player as PlayerType, PlayerAction } from "../types"
+import { Player as PlayerType, PlayerAction, Emotion } from "../types"
 import Card from "./Card"
 
 interface PlayerProps {
@@ -27,6 +27,7 @@ export default function Player({
     isTurn,
     isAllIn,
     equity,
+    emotion = "neutral",
   } = player
 
   const [showAction, setShowAction] = useState(false)
@@ -36,6 +37,8 @@ export default function Player({
   } | null>(null)
   const [isHovered, setIsHovered] = useState(false)
   const [animateAvatar, setAnimateAvatar] = useState(false)
+  const [showEmotionAnimation, setShowEmotionAnimation] = useState(false)
+  const [previousIsTurn, setPreviousIsTurn] = useState(isTurn)
 
   // Function to get emoji for a card suit
   const getCardSuitSymbol = (suit: string): string => {
@@ -49,122 +52,139 @@ export default function Player({
   }
 
   // Extract player's nickname and personality
-  const getNicknameAndPersonality = (): { nickname: string; personality: string } => {
+  const getNicknameAndPersonality = (): {
+    nickname: string
+    personality: string
+  } => {
     // Default values
-    let nickname = name;
-    let personality = "regular";
-    
-    // If name has a nickname in quotes, extract it
-    const nicknameMatch = name.match(/'([^']+)'/);
-    if (nicknameMatch && nicknameMatch[1]) {
-      nickname = nicknameMatch[1];
-      
-      // Try to identify personality from nickname
-      if (nickname.includes("All-In") || nickname.includes("Big") || nickname.includes("Shark")) {
-        personality = "aggressive";
-      } else if (nickname.includes("Fold") || nickname.includes("Tight") || nickname.includes("Grinder")) {
-        personality = "tight";
-      } else if (nickname.includes("Calculator") || nickname.includes("Math") || nickname.includes("Statistician")) {
-        personality = "analytical";
-      } else if (nickname.includes("Lucky") || nickname.includes("Wild") || nickname.includes("Hot")) {
-        personality = "loose";
-      } else if (nickname.includes("Stone") || nickname.includes("Conservative")) {
-        personality = "conservative"; 
-      } else if (nickname.includes("Bluff") || nickname.includes("Tell")) {
-        personality = "bluffer";
-      } else if (nickname.includes("Check") || nickname.includes("Zen")) {
-        personality = "passive";
-      } else if (nickname.includes("Card") || nickname.includes("Wild")) {
-        personality = "unpredictable";
-      } else if (nickname.includes("Money") || nickname.includes("Even")) {
-        personality = "balanced";
-      } else if (nickname.includes("Double") || nickname.includes("Flash")) {
-        personality = "risk-taker";
-      } else if (nickname.includes("Pair") || nickname.includes("Cautious")) {
-        personality = "cautious";
-      }
+    let nickname = name
+    let personality = "regular"
+
+    return { nickname, personality }
+  }
+
+  // Function to get emotion emoji
+  const getEmotionEmoji = (): string => {
+    switch (emotion) {
+      case "happy":
+        return "😊"
+      case "excited":
+        return "😃"
+      case "nervous":
+        return "😰"
+      case "thoughtful":
+        return "🤔"
+      case "suspicious":
+        return "🤨"
+      case "confident":
+        return "😎"
+      case "disappointed":
+        return "😞"
+      case "frustrated":
+        return "😤"
+      case "surprised":
+        return "😲"
+      case "poker-face":
+        return "😐"
+      case "bluffing":
+        return "😏"
+      case "calculating":
+        return "🧐"
+      case "intimidating":
+        return "😠"
+      case "worried":
+        return "😟"
+      case "neutral":
+        return "😐"
+      default:
+        return "😶"
     }
-    
-    return { nickname, personality };
-  };
-  
-  // Personality-driven styling
-  const getPersonalityIcon = (): string => {
-    const { personality } = getNicknameAndPersonality();
-    
-    switch (personality) {
-      case "aggressive": return "🔥"; 
-      case "tight": return "🔒";
-      case "analytical": return "🧮";
-      case "loose": return "🎲";
-      case "conservative": return "🧊";
-      case "bluffer": return "🃏";
-      case "passive": return "☯️";
-      case "unpredictable": return "❓";
-      case "balanced": return "⚖️";
-      case "risk-taker": return "💰";
-      case "cautious": return "🐢";
-      default: return "🤖";
+  }
+
+  // Function to get tooltip text for emotion
+  const getEmotionTooltip = (): string => {
+    const emotionWord = emotion.charAt(0).toUpperCase() + emotion.slice(1)
+    return `${emotionWord}`
+  }
+
+  // Track turn changes to trigger the emotion animation
+  useEffect(() => {
+    // If player was active but is no longer active (turn just ended)
+    if (previousIsTurn && !isTurn) {
+      setShowEmotionAnimation(true)
+
+      // Hide the animation after some time
+      const timer = setTimeout(() => {
+        setShowEmotionAnimation(false)
+      }, 3000) // 3 seconds total for animation
+
+      return () => clearTimeout(timer)
     }
-  };
+
+    // Update the previous state
+    setPreviousIsTurn(isTurn)
+  }, [isTurn, previousIsTurn])
 
   // Get avatar design based on personality
   const getAvatarDesign = () => {
-    const { personality } = getNicknameAndPersonality();
-    const firstLetter = getDisplayName().charAt(0).toUpperCase();
-    
+    const { personality } = getNicknameAndPersonality()
+    const firstLetter = getDisplayName().charAt(0).toUpperCase()
+    const emotionEmoji = getEmotionEmoji()
+
     // Different avatar designs based on personality
     switch (personality) {
-      case "aggressive": 
+      case "aggressive":
         return (
           <div className="bg-gradient-to-br from-red-600 to-red-700 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
-            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.1)_0%,transparent_70%)]"></div>
-            <div className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center">🔥</div>
+            <div className="text-white font-bold text-base relative z-10">
+              {firstLetter}
+            </div>
           </div>
-        );
+        )
       case "tight":
         return (
           <div className="bg-gradient-to-br from-blue-700 to-blue-800 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
-            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
-            <div className="absolute inset-0 bg-[linear-gradient(45deg,rgba(255,255,255,0.1)_25%,transparent_25%,transparent_50%,rgba(255,255,255,0.1)_50%,rgba(255,255,255,0.1)_75%,transparent_75%,transparent)]"></div>
-            <div className="absolute top-0 right-0 w-3 h-3 flex items-center justify-center">🔒</div>
+            <div className="text-white font-bold text-base relative z-10">
+              {firstLetter}
+            </div>
           </div>
-        );
+        )
       case "analytical":
         return (
           <div className="bg-gradient-to-br from-indigo-600 to-indigo-700 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
-            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
-            <div className="absolute inset-0 bg-[radial-gradient(ellipse_at_top_right,rgba(255,255,255,0.2)_0%,transparent_70%)]"></div>
-            <div className="absolute top-0 left-0 w-3 h-3 flex items-center justify-center">🧮</div>
+            <div className="text-white font-bold text-base relative z-10">
+              {firstLetter}
+            </div>
           </div>
-        );
+        )
       case "loose":
         return (
           <div className="bg-gradient-to-br from-purple-500 to-purple-600 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
-            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_center,rgba(255,255,255,0.15)_0%,transparent_60%)]"></div>
-            <div className="absolute bottom-0 left-0 w-3 h-3 flex items-center justify-center">🎲</div>
+            <div className="text-white font-bold text-base relative z-10">
+              {firstLetter}
+            </div>
           </div>
-        );
+        )
       case "bluffer":
         return (
           <div className="bg-gradient-to-br from-amber-500 to-amber-600 w-full h-full rounded-full flex items-center justify-center overflow-hidden">
-            <div className="text-white font-bold text-base relative z-10">{firstLetter}</div>
+            <div className="text-white font-bold text-base relative z-10">
+              {firstLetter}
+            </div>
             <div className="absolute inset-0 bg-[linear-gradient(135deg,rgba(255,255,255,0.1)_0%,transparent_50%,rgba(255,255,255,0.1)_100%)]"></div>
-            <div className="absolute top-0 right-0 w-3 h-3 flex items-center justify-center">🃏</div>
           </div>
-        );
+        )
       default:
         // Generic avatar for other personalities
         return (
-          <div className={`${getAvatarColor()} w-full h-full rounded-full flex items-center justify-center`}>
+          <div
+            className={`${getAvatarColor()} w-full h-full rounded-full flex items-center justify-center`}
+          >
             <div className="text-white font-bold text-base">{firstLetter}</div>
-            <div className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center">{getPersonalityIcon()}</div>
           </div>
-        );
+        )
     }
-  };
+  }
 
   // Periodically animate active players' avatars for a "breathing" effect
   useEffect(() => {
@@ -225,42 +245,45 @@ export default function Player({
 
   // Generate avatar color based on player personality
   const getAvatarColor = () => {
-    const { personality } = getNicknameAndPersonality();
-    
+    const { personality } = getNicknameAndPersonality()
+
     const personalityColors: Record<string, string> = {
-      "aggressive": "bg-gradient-to-br from-red-600 to-red-700",
-      "tight": "bg-gradient-to-br from-blue-700 to-blue-800",
-      "analytical": "bg-gradient-to-br from-indigo-600 to-indigo-700",
-      "loose": "bg-gradient-to-br from-purple-500 to-purple-600",
-      "conservative": "bg-gradient-to-br from-teal-600 to-teal-700",
-      "bluffer": "bg-gradient-to-br from-amber-500 to-amber-600",
-      "passive": "bg-gradient-to-br from-green-600 to-green-700",
-      "unpredictable": "bg-gradient-to-br from-fuchsia-500 to-fuchsia-600",
-      "balanced": "bg-gradient-to-br from-emerald-500 to-emerald-600",
+      aggressive: "bg-gradient-to-br from-red-600 to-red-700",
+      tight: "bg-gradient-to-br from-blue-700 to-blue-800",
+      analytical: "bg-gradient-to-br from-indigo-600 to-indigo-700",
+      loose: "bg-gradient-to-br from-purple-500 to-purple-600",
+      conservative: "bg-gradient-to-br from-teal-600 to-teal-700",
+      bluffer: "bg-gradient-to-br from-amber-500 to-amber-600",
+      passive: "bg-gradient-to-br from-green-600 to-green-700",
+      unpredictable: "bg-gradient-to-br from-fuchsia-500 to-fuchsia-600",
+      balanced: "bg-gradient-to-br from-emerald-500 to-emerald-600",
       "risk-taker": "bg-gradient-to-br from-orange-500 to-orange-600",
-      "cautious": "bg-gradient-to-br from-cyan-600 to-cyan-700",
-    };
-    
-    return personalityColors[personality] || "bg-gradient-to-br from-gray-600 to-gray-700";
+      cautious: "bg-gradient-to-br from-cyan-600 to-cyan-700",
+    }
+
+    return (
+      personalityColors[personality] ||
+      "bg-gradient-to-br from-gray-600 to-gray-700"
+    )
   }
 
   // Format player name for display (clean up nickname format)
   const getDisplayName = () => {
-    const { nickname } = getNicknameAndPersonality();
-    
+    const { nickname } = getNicknameAndPersonality()
+
     // Check if the name matches our expected format with a nickname
-    const nameMatch = name.match(/^(.*?)\s+'([^']+)'(.*?)$/);
-    
+    const nameMatch = name.match(/^(.*?)\s+'([^']+)'(.*?)$/)
+
     if (nameMatch) {
-      const firstName = nameMatch[1];
-      const lastName = nameMatch[3];
-      
+      const firstName = nameMatch[1]
+      const lastName = nameMatch[3]
+
       // Display first name and last initial for cleaner look
-      return `${firstName} '${nickname}'`;
+      return `${firstName} '${nickname}'`
     }
-    
-    return name;
-  };
+
+    return name
+  }
 
   // Action text and styles with enhanced animations
   const getActionDisplay = () => {
@@ -327,15 +350,20 @@ export default function Player({
   }
 
   // Enhanced winner effects
-  const winnerGlowStyle = isWinner ? {
-    animation: 'pulse 1.5s infinite',
-    boxShadow: '0 0 25px rgba(250, 204, 21, 0.7), 0 0 15px rgba(250, 204, 21, 0.5)',
-    transform: 'scale(1.05)'
-  } : {};
+  const winnerGlowStyle = isWinner
+    ? {
+        animation: "pulse 1.5s infinite",
+        boxShadow:
+          "0 0 25px rgba(250, 204, 21, 0.7), 0 0 15px rgba(250, 204, 21, 0.5)",
+        transform: "scale(1.05)",
+      }
+    : {}
 
   return (
     <div
-      className={`absolute ${positionClass} ${isTurn ? "z-20" : isWinner ? "z-30" : "z-10"} 
+      className={`absolute ${positionClass} ${
+        isTurn ? "z-20" : isWinner ? "z-30" : "z-10"
+      } 
                 transition-all duration-500`}
     >
       {/* Player spotlight for active player */}
@@ -353,18 +381,34 @@ export default function Player({
         ></div>
       )}
 
+      {/* Emotion bubble animation when player finishes their turn */}
+      {showEmotionAnimation && (
+        <div
+          className="absolute -right-12 top-0 z-40"
+          style={{
+            animation: "fade-in-out 3s forwards",
+          }}
+        >
+          <div className="relative">
+            <div className="bg-white bg-opacity-90 rounded-full p-4 shadow-lg">
+              <span className="text-4xl">{getEmotionEmoji()}</span>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Confetti effect for winner */}
       {isWinner && (
         <div className="absolute -inset-10 overflow-hidden pointer-events-none">
           <div className="confetti-container">
             {[...Array(20)].map((_, i) => (
-              <div 
+              <div
                 key={i}
                 className={`confetti confetti-${i % 5}`}
                 style={{
                   left: `${Math.random() * 100}%`,
                   animationDelay: `${Math.random() * 3}s`,
-                  animationDuration: `${3 + Math.random() * 2}s`
+                  animationDuration: `${3 + Math.random() * 2}s`,
                 }}
               ></div>
             ))}
@@ -401,22 +445,18 @@ export default function Player({
             : ""
         }`}
         style={{
-          ...(isWinner ? winnerGlowStyle : {
-            boxShadow: isTurn
-              ? "0 0 12px rgba(96, 165, 250, 0.4)"
-              : "0 4px 6px rgba(0, 0, 0, 0.2)"
-          })
+          ...(isWinner
+            ? winnerGlowStyle
+            : {
+                boxShadow: isTurn
+                  ? "0 0 12px rgba(96, 165, 250, 0.4)"
+                  : "0 4px 6px rgba(0, 0, 0, 0.2)",
+              }),
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
       >
         {showAction && getActionDisplay()}
-
-        {/* Personality Pill - Shows personality type above player */}
-        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-gray-800/90 text-white text-xs font-medium border border-gray-700 flex items-center gap-1.5 backdrop-blur-sm">
-          <span>{getPersonalityIcon()}</span>
-          <span className="capitalize">{getNicknameAndPersonality().personality}</span>
-        </div>
 
         {/* Player cards */}
         <div className="relative flex justify-center mb-3 mt-0.5">
@@ -429,10 +469,7 @@ export default function Player({
                     : "rotate-[-5deg] translate-x-[-12px]"
                 }`}
               >
-                <Card
-                  card={hand[0]}
-                  faceUp={isHovered || showCards}
-                />
+                <Card card={hand[0]} faceUp={isHovered || showCards} />
               </div>
               <div
                 className={`transform transition-all duration-500 ${
@@ -441,10 +478,7 @@ export default function Player({
                     : "rotate-[5deg] translate-x-[12px]"
                 }`}
               >
-                <Card
-                  card={hand[1]}
-                  faceUp={isHovered || showCards}
-                />
+                <Card card={hand[1]} faceUp={isHovered || showCards} />
               </div>
 
               {/* Card value tooltip that appears on hover */}
@@ -546,7 +580,8 @@ export default function Player({
             <div className="mt-2">
               <div className="flex justify-between items-center text-xs mb-1">
                 <div className={`${getEquityColor()} font-medium`}>
-                  Equity: {equity !== undefined ? equity.toFixed(1) + "%" : "N/A"}
+                  Equity:{" "}
+                  {equity !== undefined ? equity.toFixed(1) + "%" : "N/A"}
                 </div>
               </div>
               <div className="h-1.5 bg-gray-700 rounded-full overflow-hidden">

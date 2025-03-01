@@ -6,6 +6,7 @@ import {
   PlayerAction,
   Rank,
   Suit,
+  Emotion,
 } from "../types"
 import {
   determineAction,
@@ -57,31 +58,34 @@ export const generatePokerPlayerName = (
   id: number
 ): { name: string; personality: string } => {
   const pokerPersonalities = [
-    { name: "Tilly 'All-In' Anderson", personality: "aggressive" },
-    { name: "Sammy 'Folding Hands' Chen", personality: "tight" },
-    { name: "Max 'The Calculator' Fischer", personality: "analytical" },
-    { name: "Luna 'Lucky Card' Martinez", personality: "loose" },
-    { name: "Viktor 'Stone Face' Petrov", personality: "conservative" },
-    { name: "Rio 'The Bluffer' Jackson", personality: "bluffer" },
-    { name: "Penny 'The Shark' Waters", personality: "aggressive" },
-    { name: "Charlie 'Chill Check' Thompson", personality: "passive" },
-    { name: "Molly 'Math Whiz' Bloom", personality: "analytical" },
-    { name: "Tony 'The Tell' Rodriguez", personality: "loose" },
-    { name: "Sophie 'The Statistician' Kim", personality: "tight" },
-    { name: "Jack 'Wild Card' Wilson", personality: "unpredictable" },
-    { name: "Evelyn 'Even Money' Park", personality: "balanced" },
-    { name: "Bobby 'Big Stacks' Johnson", personality: "aggressive" },
-    { name: "Olivia 'One Pair' Williams", personality: "cautious" },
-    { name: "Frank 'Flash' Murphy", personality: "aggressive" },
-    { name: "Zoe 'Zen Master' Taylor", personality: "passive" },
-    { name: "Harvey 'Hot Streak' Wong", personality: "loose" },
-    { name: "Grace 'The Grinder' Miller", personality: "tight" },
-    { name: "Duke 'Double Down' Smith", personality: "risk-taker" },
+    "aggressive",
+    "tight",
+    "analytical",
+    "loose",
+    "conservative",
+    "bluffer",
+    "aggressive",
+    "passive",
+    "analytical",
+    "loose",
+    "tight",
+    "unpredictable",
+    "balanced",
+    "aggressive",
+    "cautious",
+    "aggressive",
+    "passive",
+    "loose",
+    "tight",
+    "risk-taker",
   ]
 
   // Use modulo to cycle through the personalities if there are more players than personalities
   const personalityIndex = id % pokerPersonalities.length
-  return pokerPersonalities[personalityIndex]
+  const personality = pokerPersonalities[personalityIndex]
+  const name = `Player ${id + 1}`
+
+  return { name, personality }
 }
 
 export const createInitialGameState = (playerCount: number): GameState => {
@@ -89,10 +93,11 @@ export const createInitialGameState = (playerCount: number): GameState => {
   const players: Player[] = []
 
   for (let i = 0; i < playerCount; i++) {
-    const playerPersona = generatePokerPlayerName(i)
+    const personality = generatePokerPlayerName(i)
     players.push({
       id: i,
-      name: playerPersona.name,
+      name: `Player ${i + 1}`, // The actual name will be set by page.tsx
+      personality: personality.personality, // Store personality separately
       hand: null,
       chips: 100, // Starting chips
       currentBet: 0,
@@ -272,7 +277,9 @@ export const addLogEntry = (
   action: ActivityLogEntry["action"],
   description: string,
   amount?: number,
-  chainOfThought: string = ""
+  chainOfThought: string = "",
+  emotion?: Emotion,
+  reasoningSummary?: string
 ): GameState => {
   const player = state.players.find((p) => p.id === playerId)
   if (!player) return state
@@ -293,6 +300,8 @@ export const addLogEntry = (
     amount,
     equity: player.equity, // Include current equity in the log
     chainOfThought,
+    reasoningSummary,
+    emotion: emotion || player.emotion || "neutral", // Include emotion in the log
   })
 
   return newState
@@ -432,8 +441,16 @@ export const processBettingRound = async (
         action: PlayerAction
         betAmount?: number
         chainOfThought?: string
+        emotion?: Emotion
+        reasoningSummary?: string
       }>
-    | { action: PlayerAction; betAmount?: number; chainOfThought?: string }
+    | {
+        action: PlayerAction
+        betAmount?: number
+        chainOfThought?: string
+        emotion?: Emotion
+        reasoningSummary?: string
+      }
 ): Promise<GameState> => {
   // This is a work in progress implementation
   let currentState = { ...gameState }
@@ -451,10 +468,23 @@ export const processBettingRound = async (
   // Track the player who made the last raise
   let lastRaiser = -1
 
+  // Check if there are any active players who can still act
+  const canActPlayerCount = currentState.players.filter(
+    (p) => p.isActive && !p.isAllIn && p.chips > 0
+  ).length
+
+  // If no players can act, end the betting round immediately
+  if (canActPlayerCount === 0) {
+    return currentState
+  }
+
   // Continue until all active players have acted and all bets are matched
   // or only one player remains active
   while (true) {
     const activePlayer = currentState.players[currentState.activePlayerIndex]
+
+    // Check for the case where we've gone full circle without finding an active player
+    const initialIndex = currentState.activePlayerIndex
 
     // Skip players who have folded, are all-in, or have no chips
     if (
@@ -463,7 +493,14 @@ export const processBettingRound = async (
       activePlayer.chips <= 0
     ) {
       // Move to next player
-      currentState = nextPlayer(currentState)
+      const nextState = nextPlayer(currentState)
+
+      // If we couldn't find a next player (went full circle), end the round
+      if (nextState.activePlayerIndex === initialIndex) {
+        return currentState
+      }
+
+      currentState = nextState
       continue
     }
 
@@ -482,6 +519,8 @@ export const processBettingRound = async (
     let action: PlayerAction
     let betAmount: number = 0
     let chainOfThought: string = ""
+    let emotion: Emotion = "neutral"
+    let reasoningSummary: string = ""
 
     if (getPlayerDecision) {
       // Use the provided decision function (could be from Llama or other source)
@@ -489,11 +528,36 @@ export const processBettingRound = async (
       action = decision.action
       betAmount = decision.betAmount || 0
       chainOfThought = decision.chainOfThought || ""
+      emotion = decision.emotion || "neutral"
+      reasoningSummary = decision.reasoningSummary || ""
+
+      // Update player's emotion
+      activePlayer.emotion = emotion
     } else {
       // Fall back to the default AI decision
       const decision = determineAction(currentState, activePlayer.id)
       action = decision.action
       betAmount = decision.betAmount || 0
+
+      // Set appropriate emotions based on action
+      switch (action) {
+        case "fold":
+          activePlayer.emotion = "disappointed"
+          break
+        case "check":
+          activePlayer.emotion = "neutral"
+          break
+        case "call":
+          activePlayer.emotion = "thoughtful"
+          break
+        case "bet":
+        case "raise":
+          activePlayer.emotion = Math.random() > 0.5 ? "confident" : "bluffing"
+          break
+        case "allIn":
+          activePlayer.emotion = Math.random() > 0.7 ? "excited" : "nervous"
+          break
+      }
     }
 
     // Get a description of the AI's thought process for the log
@@ -580,7 +644,7 @@ export const processBettingRound = async (
         break
     }
 
-    // Log the player action
+    // Log the player action with emotion
     currentState = addLogEntry(
       currentState,
       activePlayer.id,
@@ -589,7 +653,9 @@ export const processBettingRound = async (
       action === "bet" || action === "raise"
         ? activePlayer.currentBet
         : undefined,
-      chainOfThought
+      chainOfThought,
+      activePlayer.emotion,
+      reasoningSummary
     )
 
     // Mark this player as having acted
@@ -606,13 +672,21 @@ export const processBettingRound = async (
       (p) => p.isActive && !p.isAllIn && p.chips > 0
     ).length
 
-    // If only one player remains active, end the round
+    // If only one player remains active or no players can act, end the round
     if (activePlayerCount <= 1) {
       break
     }
 
     // Move to next player
-    currentState = nextPlayer(currentState)
+    const nextState = nextPlayer(currentState)
+
+    // If we couldn't find a next player (went full circle), end the round
+    if (nextState.activePlayerIndex === currentState.activePlayerIndex) {
+      // No more players can act, end the betting round
+      break
+    }
+
+    currentState = nextState
   }
 
   return currentState
@@ -795,8 +869,16 @@ export const roundLoop = async (
         action: PlayerAction
         betAmount?: number
         chainOfThought?: string
+        emotion?: Emotion
+        reasoningSummary?: string
       }>
-    | { action: PlayerAction; betAmount?: number; chainOfThought?: string }
+    | {
+        action: PlayerAction
+        betAmount?: number
+        chainOfThought?: string
+        emotion?: Emotion
+        reasoningSummary?: string
+      }
 ): Promise<GameState> => {
   // Prepare new round: reset round-specific info while keeping persistent data (chips, etc.)
   let currentState = setupNextHand(gameState)
@@ -814,44 +896,82 @@ export const roundLoop = async (
     getPlayerDecision
   )
 
+  // Check if the hand should continue (at least one active player remains)
+  const hasActivePlayers = currentState.players.some((p) => p.isActive)
+  if (!hasActivePlayers) {
+    // No active players left, end the hand and determine winner
+    const showdownState = {
+      ...currentState,
+      currentPhase: "showdown" as GameState["currentPhase"],
+      winningPlayers: undefined,
+      handResults: undefined,
+    }
+    const stateWithEquity = calculateEquity(showdownState)
+    setGameState(stateWithEquity)
+    await wait(delay / 2)
+
+    const { winners, handDescriptions } = determineWinners(stateWithEquity)
+    const finalState = {
+      ...awardPot(stateWithEquity, winners),
+      currentPhase: "showdown" as GameState["currentPhase"],
+      winningPlayers: winners.map((w) => w.id),
+      handResults: handDescriptions,
+    }
+    setGameState(finalState)
+    await wait(delay * 3)
+    return finalState
+  }
+
+  // Check if we need to continue with betting rounds (more than one active player and not everyone is all-in)
+  const activePlayers = currentState.players.filter((p) => p.isActive)
+  const allInCount = activePlayers.filter((p) => p.isAllIn).length
+  const needMoreBetting =
+    activePlayers.length > 1 && allInCount < activePlayers.length
+
   // Deal flop
   currentState = dealFlop(currentState)
   setGameState(currentState)
   await wait(delay)
 
-  // Flop betting round
-  currentState = await processBettingRound(
-    currentState,
-    setGameState,
-    delay / 2,
-    getPlayerDecision
-  )
+  // Flop betting round only if there are players who can still bet
+  if (needMoreBetting) {
+    currentState = await processBettingRound(
+      currentState,
+      setGameState,
+      delay / 2,
+      getPlayerDecision
+    )
+  }
 
   // Deal turn
   currentState = dealTurn(currentState)
   setGameState(currentState)
   await wait(delay)
 
-  // Turn betting round
-  currentState = await processBettingRound(
-    currentState,
-    setGameState,
-    delay / 2,
-    getPlayerDecision
-  )
+  // Turn betting round only if there are players who can still bet
+  if (needMoreBetting) {
+    currentState = await processBettingRound(
+      currentState,
+      setGameState,
+      delay / 2,
+      getPlayerDecision
+    )
+  }
 
   // Deal river
   currentState = dealRiver(currentState)
   setGameState(currentState)
   await wait(delay)
 
-  // River betting round
-  currentState = await processBettingRound(
-    currentState,
-    setGameState,
-    delay / 2,
-    getPlayerDecision
-  )
+  // River betting round only if there are players who can still bet
+  if (needMoreBetting) {
+    currentState = await processBettingRound(
+      currentState,
+      setGameState,
+      delay / 2,
+      getPlayerDecision
+    )
+  }
 
   // Showdown phase
   const showdownState = {
@@ -893,8 +1013,16 @@ export const gameLoop = async (
         action: PlayerAction
         betAmount?: number
         chainOfThought?: string
+        emotion?: Emotion
+        reasoningSummary?: string
       }>
-    | { action: PlayerAction; betAmount?: number; chainOfThought?: string },
+    | {
+        action: PlayerAction
+        betAmount?: number
+        chainOfThought?: string
+        emotion?: Emotion
+        reasoningSummary?: string
+      },
   shouldStop: () => boolean
 ): Promise<void> => {
   let currentState = initialGameState

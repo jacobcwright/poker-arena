@@ -14,93 +14,93 @@ const npcPersonalities = new Map<number, AIPersonality>()
 
 // Generate a personality based on player's name and personality type
 export const generatePersonality = (playerId: number): AIPersonality => {
-  const playerPersona = generatePokerPlayerName(playerId);
-  
+  const playerPersona = generatePokerPlayerName(playerId)
+
   // Default baseline personality
   let personality: AIPersonality = {
     aggressiveness: 0.5,
     bluffFrequency: 0.3,
     tightness: 0.5,
     adaptability: 0.5,
-  };
-  
+  }
+
   // Adjust personality based on the persona type
   switch (playerPersona.personality) {
     case "aggressive":
-      personality.aggressiveness = 0.8 + Math.random() * 0.2;
-      personality.bluffFrequency = 0.5 + Math.random() * 0.3;
-      personality.tightness = 0.3 + Math.random() * 0.2;
-      personality.adaptability = 0.4 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.8 + Math.random() * 0.2
+      personality.bluffFrequency = 0.5 + Math.random() * 0.3
+      personality.tightness = 0.3 + Math.random() * 0.2
+      personality.adaptability = 0.4 + Math.random() * 0.3
+      break
     case "tight":
-      personality.aggressiveness = 0.3 + Math.random() * 0.2;
-      personality.bluffFrequency = 0.1 + Math.random() * 0.2;
-      personality.tightness = 0.7 + Math.random() * 0.3;
-      personality.adaptability = 0.5 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.3 + Math.random() * 0.2
+      personality.bluffFrequency = 0.1 + Math.random() * 0.2
+      personality.tightness = 0.7 + Math.random() * 0.3
+      personality.adaptability = 0.5 + Math.random() * 0.3
+      break
     case "analytical":
-      personality.aggressiveness = 0.4 + Math.random() * 0.3;
-      personality.bluffFrequency = 0.2 + Math.random() * 0.2;
-      personality.tightness = 0.6 + Math.random() * 0.3;
-      personality.adaptability = 0.7 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.4 + Math.random() * 0.3
+      personality.bluffFrequency = 0.2 + Math.random() * 0.2
+      personality.tightness = 0.6 + Math.random() * 0.3
+      personality.adaptability = 0.7 + Math.random() * 0.3
+      break
     case "loose":
-      personality.aggressiveness = 0.6 + Math.random() * 0.3;
-      personality.bluffFrequency = 0.5 + Math.random() * 0.4;
-      personality.tightness = 0.2 + Math.random() * 0.3;
-      personality.adaptability = 0.4 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.6 + Math.random() * 0.3
+      personality.bluffFrequency = 0.5 + Math.random() * 0.4
+      personality.tightness = 0.2 + Math.random() * 0.3
+      personality.adaptability = 0.4 + Math.random() * 0.3
+      break
     case "conservative":
-      personality.aggressiveness = 0.2 + Math.random() * 0.2;
-      personality.bluffFrequency = 0.1 + Math.random() * 0.1;
-      personality.tightness = 0.7 + Math.random() * 0.2;
-      personality.adaptability = 0.3 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.2 + Math.random() * 0.2
+      personality.bluffFrequency = 0.1 + Math.random() * 0.1
+      personality.tightness = 0.7 + Math.random() * 0.2
+      personality.adaptability = 0.3 + Math.random() * 0.3
+      break
     case "bluffer":
-      personality.aggressiveness = 0.5 + Math.random() * 0.3;
-      personality.bluffFrequency = 0.7 + Math.random() * 0.3;
-      personality.tightness = 0.4 + Math.random() * 0.2;
-      personality.adaptability = 0.5 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.5 + Math.random() * 0.3
+      personality.bluffFrequency = 0.7 + Math.random() * 0.3
+      personality.tightness = 0.4 + Math.random() * 0.2
+      personality.adaptability = 0.5 + Math.random() * 0.3
+      break
     case "passive":
-      personality.aggressiveness = 0.2 + Math.random() * 0.2;
-      personality.bluffFrequency = 0.2 + Math.random() * 0.2;
-      personality.tightness = 0.5 + Math.random() * 0.3;
-      personality.adaptability = 0.6 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.2 + Math.random() * 0.2
+      personality.bluffFrequency = 0.2 + Math.random() * 0.2
+      personality.tightness = 0.5 + Math.random() * 0.3
+      personality.adaptability = 0.6 + Math.random() * 0.3
+      break
     case "unpredictable":
-      personality.aggressiveness = 0.3 + Math.random() * 0.7; // highly variable
-      personality.bluffFrequency = 0.3 + Math.random() * 0.6;
-      personality.tightness = 0.2 + Math.random() * 0.6;
-      personality.adaptability = 0.5 + Math.random() * 0.5;
-      break;
+      personality.aggressiveness = 0.3 + Math.random() * 0.7 // highly variable
+      personality.bluffFrequency = 0.3 + Math.random() * 0.6
+      personality.tightness = 0.2 + Math.random() * 0.6
+      personality.adaptability = 0.5 + Math.random() * 0.5
+      break
     case "balanced":
-      personality.aggressiveness = 0.4 + Math.random() * 0.3;
-      personality.bluffFrequency = 0.3 + Math.random() * 0.2;
-      personality.tightness = 0.4 + Math.random() * 0.3;
-      personality.adaptability = 0.6 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.4 + Math.random() * 0.3
+      personality.bluffFrequency = 0.3 + Math.random() * 0.2
+      personality.tightness = 0.4 + Math.random() * 0.3
+      personality.adaptability = 0.6 + Math.random() * 0.3
+      break
     case "risk-taker":
-      personality.aggressiveness = 0.7 + Math.random() * 0.3;
-      personality.bluffFrequency = 0.6 + Math.random() * 0.3;
-      personality.tightness = 0.2 + Math.random() * 0.3;
-      personality.adaptability = 0.5 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.7 + Math.random() * 0.3
+      personality.bluffFrequency = 0.6 + Math.random() * 0.3
+      personality.tightness = 0.2 + Math.random() * 0.3
+      personality.adaptability = 0.5 + Math.random() * 0.3
+      break
     case "cautious":
-      personality.aggressiveness = 0.2 + Math.random() * 0.3;
-      personality.bluffFrequency = 0.2 + Math.random() * 0.2;
-      personality.tightness = 0.6 + Math.random() * 0.3;
-      personality.adaptability = 0.4 + Math.random() * 0.3;
-      break;
+      personality.aggressiveness = 0.2 + Math.random() * 0.3
+      personality.bluffFrequency = 0.2 + Math.random() * 0.2
+      personality.tightness = 0.6 + Math.random() * 0.3
+      personality.adaptability = 0.4 + Math.random() * 0.3
+      break
     default:
       // Add some randomness to make each player unique even with same personality type
-      personality.aggressiveness = 0.2 + Math.random() * 0.6;
-      personality.bluffFrequency = 0.1 + Math.random() * 0.4;
-      personality.tightness = 0.3 + Math.random() * 0.5;
-      personality.adaptability = 0.4 + Math.random() * 0.4;
+      personality.aggressiveness = 0.2 + Math.random() * 0.6
+      personality.bluffFrequency = 0.1 + Math.random() * 0.4
+      personality.tightness = 0.3 + Math.random() * 0.5
+      personality.adaptability = 0.4 + Math.random() * 0.4
   }
-  
-  return personality;
+
+  return personality
 }
 
 // Assign personalities to each NPC
@@ -191,7 +191,8 @@ export const determineAction = (
     return { action: "fold" }
   }
 
-  const personality = npcPersonalities.get(playerId) || generatePersonality(playerId)
+  const personality =
+    npcPersonalities.get(playerId) || generatePersonality(playerId)
   const handStrength = calculateHandStrength(player, gameState.communityCards)
 
   // Adjust hand strength based on personality
@@ -258,12 +259,12 @@ export const getActionDescription = (
   const personality = npcPersonalities.get(playerId)
   if (!personality) return `Performs a ${action}`
 
-  const playerPersona = generatePokerPlayerName(playerId);
-  const { name, personality: personalityType } = playerPersona;
-  
+  const playerPersona = generatePokerPlayerName(playerId)
+  const { name, personality: personalityType } = playerPersona
+
   // Extract the nickname for flavor text
-  const nicknameMatch = name.match(/'([^']+)'/);
-  const nickname = nicknameMatch ? nicknameMatch[1] : "";
+  const nicknameMatch = name.match(/'([^']+)'/)
+  const nickname = nicknameMatch ? nicknameMatch[1] : ""
 
   // Base description templates that reflect personality traits
   const actionTemplates: Record<string, Record<PlayerAction, string[]>> = {
@@ -619,7 +620,7 @@ export const getActionDescription = (
         "pushes all-in with unexpected decisiveness",
       ],
     },
-  };
+  }
 
   // Default to a random description for unknown personality types
   const defaultTemplates = [
@@ -627,20 +628,24 @@ export const getActionDescription = (
     "continues playing",
     "takes action",
     "decides to proceed",
-  ];
+  ]
 
   // Get appropriate templates for this personality and action
-  const templates = actionTemplates[personalityType]?.[action] || defaultTemplates;
-  
+  const templates =
+    actionTemplates[personalityType]?.[action] || defaultTemplates
+
   // Choose a random description from available templates
-  const baseDescription = templates[Math.floor(Math.random() * templates.length)];
-  
+  const baseDescription =
+    templates[Math.floor(Math.random() * templates.length)]
+
   // Add nickname flavor and bet amount where applicable
   if (action === "bet" || action === "raise") {
-    return `${nickname ? `"${nickname}" ` : ""}${baseDescription} ($${betAmount})`;
+    return `${
+      nickname ? `"${nickname}" ` : ""
+    }${baseDescription} ($${betAmount})`
   }
-  
-  return `${nickname ? `"${nickname}" ` : ""}${baseDescription}`;
+
+  return `${nickname ? `"${nickname}" ` : ""}${baseDescription}`
 }
 
 // Helper to describe personality type

@@ -1,33 +1,34 @@
 export const maxDuration = 20
 import { NextRequest, NextResponse } from "next/server"
-import { Emotion } from "../../types"
 import Anthropic from "@anthropic-ai/sdk"
+import { Emotion } from "../../types"
 import OpenAI from "openai"
 
 // Define types for the request and response
-interface OllamaRequestBody {
+interface ClaudeRequestBody {
   prompt: string
   model?: string
   temperature?: number
   max_tokens?: number
 }
 
-interface OllamaResponseBody {
+interface ClaudeResponseBody {
   response: string
   emotion?: Emotion
   chainOfThought?: string
   reasoning_summary?: string
 }
 
+// Replace this with your actual Claude API key
 const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY || ""
 
 export async function POST(request: NextRequest) {
   try {
     // Extract the prompt and any other parameters from the request body
-    const body = (await request.json()) as OllamaRequestBody
+    const body = (await request.json()) as ClaudeRequestBody
     const {
       prompt,
-      model = "deepseek",
+      model = "claude-3-7-sonnet-20250219",
       temperature = 0.7,
       max_tokens = 2000,
     } = body
@@ -36,52 +37,61 @@ export async function POST(request: NextRequest) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
     }
 
-    // Modify the prompt to include a format for emotion
+    // Modify the prompt to include a special thinking format with emotion
     const enhancedPrompt = `${prompt}
+
+You are a poker player who needs to make a decision. First, analyze the situation in detail by thinking step-by-step.
+Begin your response with <think> followed by your detailed analysis.
+End your thinking with </think>.
 
 After your analysis, state your final decision clearly and concisely.
 Also, tell me what emotion you're displaying to other players by adding "EMOTION: [emotion]" at the end of your response.
 Choose from: neutral, happy, excited, nervous, thoughtful, suspicious, confident, disappointed, frustrated, surprised, poker-face, bluffing, calculating, intimidating, worried.
 
 For example:
+<think>
+[Your detailed analysis here...]
+</think>
+
 I will call.
 
 EMOTION: poker-face
 `
 
-    // Set up parameters for Ollama API
-    const ollamaParams = {
-      model: model,
-      prompt: enhancedPrompt,
-      stream: false,
-      options: {
-        temperature: temperature,
-        num_predict: max_tokens,
-      },
-    }
-
-    console.log("Calling Ollama API with:", ollamaParams)
-
-    // Call the Ollama API
-    // Replace with your actual Ollama endpoint
-    const ollamaEndpoint =
-      "https://p01--deepseek-ollama--r7srf6mg442h.code.run/api/generate"
-    const ollamaResponse = await fetch(ollamaEndpoint, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-      },
-      body: JSON.stringify(ollamaParams),
+    // Initialize the Anthropic client
+    const anthropic = new Anthropic({
+      apiKey: CLAUDE_API_KEY,
     })
 
-    if (!ollamaResponse.ok) {
-      throw new Error(`Ollama API returned ${ollamaResponse.status}`)
+    console.log("Calling Claude API with:", {
+      model,
+      enhancedPrompt,
+      temperature,
+      max_tokens,
+    })
+
+    // Call the Claude API using the SDK
+    const message = await anthropic.messages.create({
+      model,
+      max_tokens,
+      temperature,
+      messages: [{ role: "user", content: enhancedPrompt }],
+    })
+
+    let responseText = ""
+    let thinkingText = ""
+    // Parse the response content
+    if (message.content && message.content.length > 0) {
+      // Check for content blocks and extract text
+      for (const block of message.content) {
+        if (block.type === "text" && "text" in block) {
+          responseText = String(block.text || "")
+        }
+        if (block.type === "thinking" && "text" in block) {
+          thinkingText = String(block.text || "")
+        }
+      }
     }
-
-    const data = await ollamaResponse.json()
-    console.log("Ollama API response:", data)
-
-    const responseText = data.response || ""
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
@@ -108,7 +118,11 @@ EMOTION: poker-face
         }
 
         Here is the text to analyze:
-        ${responseText}`,
+        <thinking>
+        ${thinkingText}
+        </thinking>
+        ${responseText}
+        `,
         },
       ],
       response_format: {
@@ -155,21 +169,21 @@ EMOTION: poker-face
 
     console.log("========== JSON response:", jsonResponse)
 
-    const response: OllamaResponseBody = {
+    const response: ClaudeResponseBody = {
       response: jsonResponse.decision,
       emotion: jsonResponse.emotion,
       chainOfThought: jsonResponse.chainOfThought,
       reasoning_summary: jsonResponse.reasoning_summary,
     }
 
-    console.log("========== Ollama API response:", response)
+    console.log("========== Claude API thinking response:", response)
 
     return NextResponse.json(response)
   } catch (error) {
-    console.error("Error calling Ollama API:", error)
+    console.error("Error calling Claude API:", error)
     return NextResponse.json(
       {
-        error: "Failed to call Ollama API",
+        error: "Failed to call Claude API",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 500 }
