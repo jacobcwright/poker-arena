@@ -25,6 +25,18 @@ export default function Player({
     type: PlayerAction
     amount?: number
   } | null>(null)
+  const [isHovered, setIsHovered] = useState(false)
+
+  // Function to get emoji for a card suit
+  const getCardSuitSymbol = (suit: string): string => {
+    const suitSymbols: Record<string, string> = {
+      hearts: "♥️",
+      diamonds: "♦️",
+      clubs: "♣️",
+      spades: "♠️",
+    }
+    return suitSymbols[suit] || ""
+  }
 
   // Show action animation when action changes
   useEffect(() => {
@@ -110,17 +122,67 @@ export default function Player({
                       ? "border-yellow-400 bg-gray-700"
                       : isTurn
                       ? "border-blue-400"
+                      : isHovered
+                      ? "border-green-400 bg-gray-700"
                       : "border-gray-700"
+                  }
+                  ${
+                    !showCards && hand
+                      ? "cursor-pointer hover:shadow-lg hover:shadow-green-900/50"
+                      : ""
+                  }
+                  transition-all duration-200 ${
+                    isHovered ? "transform scale-105" : ""
                   }`}
+        onMouseEnter={() => setIsHovered(true)}
+        onMouseLeave={() => setIsHovered(false)}
       >
         {showAction && getActionDisplay()}
 
         <div className="flex flex-col items-center">
-          <div className="flex gap-1 mb-2">
+          <div className="flex gap-1 mb-2 relative">
             {hand ? (
               <>
-                <Card card={hand[0]} hidden={!showCards && !isActive} />
-                <Card card={hand[1]} hidden={!showCards && !isActive} />
+                <Card
+                  card={{
+                    ...hand[0],
+                    // Force cards to be face-up when hovered or during showdown
+                    faceUp: isHovered || showCards || isActive,
+                  }}
+                  hidden={false}
+                />
+                <Card
+                  card={{
+                    ...hand[1],
+                    // Force cards to be face-up when hovered or during showdown
+                    faceUp: isHovered || showCards || isActive,
+                  }}
+                  hidden={false}
+                />
+                {isHovered && !showCards && !isActive && (
+                  <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-black bg-opacity-80 text-white text-xs py-1 px-3 rounded whitespace-nowrap font-medium">
+                    <span
+                      className={
+                        hand[0].suit === "hearts" || hand[0].suit === "diamonds"
+                          ? "text-red-400"
+                          : "text-white"
+                      }
+                    >
+                      {hand[0].rank}
+                      {getCardSuitSymbol(hand[0].suit)}
+                    </span>{" "}
+                    <span
+                      className={
+                        hand[1].suit === "hearts" || hand[1].suit === "diamonds"
+                          ? "text-red-400"
+                          : "text-white"
+                      }
+                    >
+                      {hand[1].rank}
+                      {getCardSuitSymbol(hand[1].suit)}
+                    </span>
+                  </div>
+                )}
               </>
             ) : (
               <div className="text-gray-400">No cards</div>

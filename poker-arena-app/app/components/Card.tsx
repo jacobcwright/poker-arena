@@ -1,4 +1,5 @@
 import { Card as CardType } from "../types"
+import { useState, useEffect } from "react"
 
 interface CardProps {
   card: CardType
@@ -7,17 +8,22 @@ interface CardProps {
 
 export default function Card({ card, hidden = false }: CardProps) {
   const { suit, rank, faceUp } = card
+  const [isFlipping, setIsFlipping] = useState(false)
+  const [showFront, setShowFront] = useState(faceUp && !hidden)
 
-  // If card is face down or explicitly hidden, show the back
-  if (!faceUp || hidden) {
-    return (
-      <div className="w-16 h-24 rounded-md bg-blue-800 border-2 border-white flex items-center justify-center">
-        <div className="w-12 h-20 rounded bg-blue-600 flex items-center justify-center">
-          <span className="text-white font-bold">♠️</span>
-        </div>
-      </div>
-    )
-  }
+  // Handle changes to the faceUp or hidden state with animation
+  useEffect(() => {
+    const shouldShowFront = faceUp && !hidden
+    if (showFront === shouldShowFront) return
+
+    setIsFlipping(true)
+    const timer = setTimeout(() => {
+      setShowFront(shouldShowFront)
+      setIsFlipping(false)
+    }, 150) // Half of the transition duration
+
+    return () => clearTimeout(timer)
+  }, [faceUp, hidden])
 
   // Color based on suit
   const isRed = suit === "hearts" || suit === "diamonds"
@@ -31,8 +37,30 @@ export default function Card({ card, hidden = false }: CardProps) {
     spades: "♠️",
   }[suit]
 
+  // Common card style
+  const cardStyle = "w-16 h-24 rounded-md border-2 transition-all duration-300"
+
+  // Apply flipping animation
+  const transform = isFlipping ? "transform scale-x-0" : "transform scale-x-100"
+
+  // Card back design
+  if (!showFront) {
+    return (
+      <div
+        className={`${cardStyle} ${transform} bg-blue-800 border-white flex items-center justify-center`}
+      >
+        <div className="w-12 h-20 rounded bg-blue-600 flex items-center justify-center">
+          <span className="text-white font-bold">♠️</span>
+        </div>
+      </div>
+    )
+  }
+
+  // Card front design
   return (
-    <div className="w-16 h-24 rounded-md bg-white border-2 border-gray-300 flex flex-col items-center justify-between p-1">
+    <div
+      className={`${cardStyle} ${transform} bg-white border-gray-300 flex flex-col items-center justify-between p-1`}
+    >
       <div className={`${textColor} text-left self-start font-bold`}>
         {rank}
       </div>

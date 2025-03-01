@@ -309,6 +309,13 @@ export default function Home() {
               </button>
             )}
           </div>
+
+          {/* Hint for card hover feature */}
+          <div className="text-center mt-3 text-gray-400 text-sm">
+            <span className="bg-gray-700 px-2 py-1 rounded inline-block">
+              💡 Tip: Hover over any player to see their cards
+            </span>
+          </div>
         </div>
 
         {/* Poker Table */}
