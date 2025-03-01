@@ -303,7 +303,11 @@ export const initializeBlinds = (gameState: GameState): GameState => {
 export const processBettingRound = async (
   gameState: GameState,
   setGameState: (state: GameState) => void,
-  delay: number
+  delay: number,
+  customDecisionFn?: (
+    player: Player,
+    gameState: GameState
+  ) => Promise<{ action: PlayerAction; betAmount?: number }>
 ): Promise<GameState> => {
   // This is a work in progress implementation
   let currentState = { ...gameState }
@@ -344,11 +348,21 @@ export const processBettingRound = async (
       break
     }
 
-    // Get player's action from AI
-    const { action, betAmount = 0 } = determineAction(
-      currentState,
-      activePlayer.id
-    )
+    // Get player's action - use custom function if provided, otherwise use default AI
+    let action,
+      betAmount = 0
+
+    if (customDecisionFn) {
+      // Use the custom decision function
+      const decision = await customDecisionFn(activePlayer, currentState)
+      action = decision.action
+      betAmount = decision.betAmount || 0
+    } else {
+      // Use the default AI decision
+      const decision = determineAction(currentState, activePlayer.id)
+      action = decision.action
+      betAmount = decision.betAmount || 0
+    }
 
     // Get a description of the AI's thought process for the log
     const actionDescription = getActionDescription(
