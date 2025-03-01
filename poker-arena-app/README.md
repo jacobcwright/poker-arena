@@ -39,6 +39,37 @@ This project uses Supabase for database functionality. To set up:
 
 Visit `/stats` to see a bar chart visualization of the maximum profit for each winner in the game table.
 
+## Round Results Tracking
+
+The app now tracks and stores the end balances for each player/model at the end of each poker round. This data is stored in Supabase in the `round` table with the following structure:
+
+- `id`: UUID (a unique identifier for row)
+- `round_id`: UUID (a unique identifier for the round)
+- `model`: TEXT (the player/model name)
+- `end_balance`: BIGINT (the chip count at the end of the round)
+- `created_at`: TIMESTAMPTZ (when the record was created)
+
+### Querying Round Results
+
+You can retrieve round results data using the `/api/round-results` endpoint with the following optional query parameters:
+
+- `model`: Filter by specific model/player name
+- `roundId`: Filter by specific round ID
+- `limit`: Maximum number of records to return (default: 100)
+
+Example: `/api/round-results?model=Claude&limit=10`
+
+You can also query this data directly in Supabase. For example, to get the average end balance for each model:
+
+```sql
+SELECT
+  model,
+  AVG(end_balance) as avg_balance
+FROM round
+GROUP BY model
+ORDER BY avg_balance DESC;
+```
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
