@@ -65,59 +65,17 @@ export default function Home() {
     const gameLoop = async () => {
       if (!isMounted) return
 
-      // Instead of creating a fresh state, use the end state from the previous hand
-      // or create initial state if it's the first hand
-      let initialState: GameState
-
-      if (roundRef.current === 1) {
-        // First round - either use existing gameState or create fresh one
-        if (gameState) {
-          initialState = {
-            ...gameState,
-            round: roundRef.current,
-            communityCards: [], // Reset community cards explicitly for new game
-          }
-        } else {
-          initialState = {
-            ...createInitialGameState(playerCount),
-            round: roundRef.current,
-          }
-        }
-      } else {
-        // Subsequent rounds - use the existing gameState which should already have
-        // preserved chips from previous rounds
-        if (!gameState) {
-          // This shouldn't happen, but just in case
-          initialState = {
-            ...createInitialGameState(playerCount),
-            round: roundRef.current,
-          }
-        } else {
-          initialState = {
-            ...gameState,
-            round: roundRef.current,
-            communityCards: [], // Reset community cards explicitly
-          }
-        }
+      // Start with a fresh game state for this round
+      const freshState = {
+        ...createInitialGameState(playerCount),
+        round: roundRef.current,
       }
 
       // Assign AI personalities to players
-      assignPersonalities(initialState.players)
-
-      // Debug: Log community cards at start of game loop
-      console.log(
-        "Community cards at start of game loop:",
-        initialState.communityCards
-          ? initialState.communityCards.length > 0
-            ? initialState.communityCards
-                .map((card) => `${card.rank} of ${card.suit}`)
-                .join(", ")
-            : "Empty array"
-          : "Undefined"
-      )
+      assignPersonalities(freshState.players)
 
       // Initialize with blinds
-      const initializedState = initializeBlinds(initialState)
+      const initializedState = initializeBlinds(freshState)
       if (!isMounted) return
       setGameState(initializedState)
       await waitWithPauseCheck(1000)
@@ -210,18 +168,11 @@ export default function Home() {
       // If still running, trigger the next round
       if (isMounted && isGameRunning) {
         roundRef.current += 1
-
         // Set up the next hand for the next round
-        // We will always use finalState for setupNextHand to ensure we have the most
-        // recent chip values after pot has been awarded to winners
-        const nextHandState = setupNextHand(finalState as GameState)
-        console.log(
-          "Next hand state - community cards:",
-          nextHandState.communityCards.length
-        )
-
-        // Use setGameState with the actual returned value, not inside a function
-        setGameState(nextHandState)
+        setGameState((prevState) => {
+          if (!prevState) return setupNextHand(finalState as GameState)
+          return setupNextHand(prevState)
+        })
 
         // Use setTimeout to break the synchronous execution chain
         setTimeout(() => {
@@ -244,41 +195,10 @@ export default function Home() {
     if (!isGameRunning) {
       // Create a fresh game state and reset round counter
       roundRef.current = 1
-
-      // Preserve player chips when starting a new game
-      if (gameState) {
-        // Use existing player data but reset other game state
-        const freshState = createInitialGameState(playerCount)
-
-        // If we have existing players with chips, preserve their chip counts
-        const updatedPlayers = freshState.players.map((newPlayer, index) => {
-          // If there's an existing player with this ID, preserve their chip count
-          const existingPlayer = gameState.players.find(
-            (p) => p.id === newPlayer.id
-          )
-          if (existingPlayer) {
-            return {
-              ...newPlayer,
-              name: existingPlayer.name,
-              chips: existingPlayer.chips, // Preserve chip count
-            }
-          }
-          return newPlayer
-        })
-
-        setGameState({
-          ...freshState,
-          players: updatedPlayers,
-          round: roundRef.current,
-        })
-      } else {
-        // First time starting, use initial state
-        setGameState({
-          ...createInitialGameState(playerCount),
-          round: roundRef.current,
-        })
-      }
-
+      setGameState({
+        ...createInitialGameState(playerCount),
+        round: roundRef.current,
+      })
       setIsGameRunning(true)
     } else {
       setIsGameRunning(false)
@@ -324,10 +244,10 @@ export default function Home() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-900 text-white p-4">
-      <main className="max-w-7xl mx-auto">
+    <div className="min-h-screen bg-gray-900 text-white p-8">
+      <main className="max-w-6xl mx-auto">
         {/* Header */}
-        <header className="text-center mb-6">
+        <header className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">Poker Arena</h1>
           <p className="text-gray-400">
             Watch AI Agents compete in Texas Hold'em
@@ -429,9 +349,7 @@ export default function Home() {
 
         {/* Poker Table */}
         {gameState ? (
-          <div className="mb-32">
-            <PokerTable gameState={gameState} />
-          </div>
+          <PokerTable gameState={gameState} />
         ) : (
           <div className="aspect-[16/9] bg-green-800 rounded-[50%] relative border-8 border-brown-800 mb-8">
             <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
@@ -441,7 +359,7 @@ export default function Home() {
         )}
 
         {/* Game Stats and Statistics */}
-        <div className="grid gap-4 mb-8">
+        <div className="grid grid-cols-2 gap-4 mb-8">
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4">Current Round</h2>
             <p className="text-gray-400">
@@ -468,6 +386,16 @@ export default function Home() {
               </div>
             </div>
           </div>
+
+          {/* Statistics Panel */}
+          {gameState && (
+            <StatsPanel
+              stats={gameStats}
+              playerNames={Object.fromEntries(
+                gameState.players.map((p) => [p.id, p.name])
+              )}
+            />
+          )}
         </div>
 
         {/* Activity Log */}
