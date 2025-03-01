@@ -63,38 +63,6 @@ export default function Player({
     return { nickname, personality }
   }
 
-  // Personality-driven styling
-  const getPersonalityIcon = (): string => {
-    const { personality } = getNicknameAndPersonality()
-
-    switch (personality) {
-      case "aggressive":
-        return "🔥"
-      case "tight":
-        return "🔒"
-      case "analytical":
-        return "🧮"
-      case "loose":
-        return "🎲"
-      case "conservative":
-        return "🧊"
-      case "bluffer":
-        return "🃏"
-      case "passive":
-        return "☯️"
-      case "unpredictable":
-        return "❓"
-      case "balanced":
-        return "⚖️"
-      case "risk-taker":
-        return "💰"
-      case "cautious":
-        return "🐢"
-      default:
-        return "🤖"
-    }
-  }
-
   // Function to get emotion emoji
   const getEmotionEmoji = (): string => {
     switch (emotion) {
@@ -267,9 +235,6 @@ export default function Player({
             className={`${getAvatarColor()} w-full h-full rounded-full flex items-center justify-center`}
           >
             <div className="text-white font-bold text-base">{firstLetter}</div>
-            <div className="absolute bottom-0 right-0 w-3 h-3 flex items-center justify-center">
-              {getPersonalityIcon()}
-            </div>
             {/* Emotion display */}
             <div
               className="absolute -top-3 left-1/2 -translate-x-1/2 animate-pulse z-20"
