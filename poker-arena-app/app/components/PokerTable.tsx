@@ -24,57 +24,61 @@ export default function PokerTable({ gameState }: PokerTableProps) {
     <div className="aspect-[16/9] relative overflow-visible mb-16 mt-8 pt-12">
       {/* Wooden table base - darker bottom layer for depth */}
       <div className="absolute inset-1 rounded-[50%] bg-gray-950 shadow-2xl"></div>
-      
+
       {/* Outer table frame - mahogany rail with improved grain texture */}
-      <div className="absolute inset-0 rounded-[50%] shadow-2xl"
-           style={{
-             backgroundImage: `
+      <div
+        className="absolute inset-0 rounded-[50%] shadow-2xl"
+        style={{
+          backgroundImage: `
                linear-gradient(to bottom, rgba(85, 33, 33, 0.95), rgba(52, 17, 17, 0.95)),
                url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")
              `,
-             boxShadow: '0 8px 24px rgba(0,0,0,0.4), inset 0 2px 8px rgba(255,255,255,0.1)'
-           }}>
-        
+          boxShadow:
+            "0 8px 24px rgba(0,0,0,0.4), inset 0 2px 8px rgba(255,255,255,0.1)",
+        }}
+      >
         {/* Decorative inlay on the wooden rail */}
         <div className="absolute inset-2 rounded-[50%] border-[1px] border-rose-900 opacity-20"></div>
         <div className="absolute inset-3 rounded-[50%] border-[1px] border-gray-300 opacity-10"></div>
       </div>
-      
+
       {/* Inner felt table with enhanced texture and subtle gradient */}
-      <div className="absolute inset-4 rounded-[50%] bg-green-800 shadow-inner felt-texture"
-           style={{
-             boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5), inset 0 0 80px rgba(0,0,0,0.2)'
-           }}>
-        
-        {/* Highlight ring around the felt edge */}
-        <div className="absolute inset-1 rounded-[50%] border border-green-700 opacity-30"></div>
-        
+      <div
+        className="absolute inset-4 rounded-[50%] bg-green-800 shadow-inner felt-texture"
+        style={{
+          boxShadow:
+            "inset 0 0 40px rgba(0,0,0,0.5), inset 0 0 80px rgba(0,0,0,0.2)",
+        }}
+      >
         {/* Center spotlight effect */}
-        <div className="absolute inset-0 rounded-[50%] opacity-20"
-             style={{
-               background: 'radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 60%)'
-             }}>
-        </div>
-        
+        <div
+          className="absolute inset-0 rounded-[50%] opacity-20"
+          style={{
+            background:
+              "radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 60%)",
+          }}
+        ></div>
+
         {/* Table logo watermark */}
         <div className="table-logo"></div>
-        
+
         {/* Subtle dealer positions markers - removed horizontal ones */}
         <div className="absolute h-full w-full rounded-[50%] opacity-10">
           {[...Array(8)].map((_, i) => {
             // Skip horizontal lines (position 2 and 6)
-            if (i === 2 || i === 6) return null;
-            
+            if (i === 2 || i === 6) return null
+
             return (
-              <div key={i} 
-                  className="absolute w-6 h-1 bg-white rounded-full transform -translate-x-1/2"
-                  style={{
-                    top: i === 0 ? '88%' : i === 4 ? '12%' : '50%',
-                    left: i === 2 ? '88%' : i === 6 ? '12%' : '50%',
-                    transform: `translate(-50%, -50%) rotate(${i * 45}deg)`
-                  }}>
-              </div>
-            );
+              <div
+                key={i}
+                className="absolute w-6 h-1 bg-white rounded-full transform -translate-x-1/2"
+                style={{
+                  top: i === 0 ? "88%" : i === 4 ? "12%" : "50%",
+                  left: i === 2 ? "88%" : i === 6 ? "12%" : "50%",
+                  transform: `translate(-50%, -50%) rotate(${i * 45}deg)`,
+                }}
+              ></div>
+            )
           })}
         </div>
       </div>
@@ -85,7 +89,10 @@ export default function PokerTable({ gameState }: PokerTableProps) {
           <div className="flex gap-3 mb-6">
             {communityCards.length > 0 ? (
               communityCards.map((card, index) => (
-                <div key={index} className="transform hover:scale-110 hover:-translate-y-2 transition-all duration-200 card-shadow">
+                <div
+                  key={index}
+                  className="transform hover:scale-110 hover:-translate-y-2 transition-all duration-200 card-shadow"
+                >
                   <Card key={index} card={card} />
                 </div>
               ))
@@ -99,7 +106,8 @@ export default function PokerTable({ gameState }: PokerTableProps) {
           </div>
 
           <div className="bg-green-900 bg-opacity-50 backdrop-blur-sm px-6 py-3 rounded-full text-white text-xl font-bold mb-2 shadow-lg border border-green-700">
-            <span className="mr-1 text-yellow-400">$</span>{pot}
+            <span className="mr-1 text-yellow-400">$</span>
+            {pot}
           </div>
         </div>
       </div>
@@ -147,7 +155,7 @@ export default function PokerTable({ gameState }: PokerTableProps) {
       })}
 
       {/* Improved Hand results overlay for showdown - with enhanced design */}
-      {showHandResults && (
+      {/* {showHandResults && (
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 transform -translate-y-1/3 z-50">
           <div className="bg-gray-900 bg-opacity-95 p-6 rounded-lg text-white min-w-[400px] shadow-2xl border border-yellow-500 backdrop-blur-sm">
             <div className="absolute inset-0 bg-yellow-400 opacity-5 rounded-lg"></div>
@@ -170,16 +178,20 @@ export default function PokerTable({ gameState }: PokerTableProps) {
                   >
                     <div className="flex justify-between items-center">
                       <span className="text-lg">{player.name}:</span>
-                      {isWinner && <span className="text-2xl animate-pulse">🏆</span>}
+                      {isWinner && (
+                        <span className="text-2xl animate-pulse">🏆</span>
+                      )}
                     </div>
-                    <div className="text-sm mt-2 font-light tracking-wide">{description}</div>
+                    <div className="text-sm mt-2 font-light tracking-wide">
+                      {description}
+                    </div>
                   </div>
                 ) : null
               })}
             </div>
           </div>
         </div>
-      )}
+      )} */}
     </div>
   )
 }

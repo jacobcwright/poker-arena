@@ -35,6 +35,7 @@ export default function Home() {
   const isPausedRef = useRef(false)
   const [isLogOpen, setIsLogOpen] = useState(false)
   const [playerTypes, setPlayerTypes] = useState<Record<number, string>>({}) // Track player types
+  const [lastWinAmount, setLastWinAmount] = useState<number>(0) // Store the last winning amount
 
   // Initialize game state when player count changes
   useEffect(() => {
@@ -144,8 +145,7 @@ export default function Home() {
     isPausedRef.current = isPaused
   }, [isPaused])
 
-  // Replace the existing useEffect for gameLoop with the following code:
-
+  // Update the existing useEffect for gameLoop with the following code:
   useEffect(() => {
     if (!isGameRunning) return
 
@@ -153,6 +153,26 @@ export default function Home() {
 
     // A helper to stop the loop if the component unmounts or game stops
     const shouldStop = () => !isMounted || !isGameRunning
+
+    // Wrap the getPlayerDecision to capture win amounts
+    const wrappedGetPlayerDecision = async (
+      player: Player,
+      gameState: GameState
+    ) => {
+      // Save the winning amount when it's determined
+      if (
+        gameState.currentPhase === "showdown" &&
+        gameState.winningPlayers &&
+        gameState.winningPlayers.length > 0
+      ) {
+        const winAmount = Math.floor(
+          gameState.pot / gameState.winningPlayers.length
+        )
+        setLastWinAmount(winAmount)
+      }
+
+      return getPlayerDecision(player, gameState)
+    }
 
     // Start the game loop using the new gameLoop function from gameEngine
     ;(async () => {
@@ -170,7 +190,7 @@ export default function Home() {
         initialState,
         setGameState,
         gamePhaseDelay,
-        getPlayerDecision,
+        wrappedGetPlayerDecision,
         shouldStop
       )
     })()
@@ -384,9 +404,128 @@ export default function Home() {
           {gameState ? (
             <PokerTable gameState={gameState} />
           ) : (
-            <div className="aspect-[16/9] bg-green-800 rounded-[50%] relative border-8 border-brown-800 mb-8">
-              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-                <p className="text-xl font-semibold mb-2">Loading game...</p>
+            <div className="aspect-[16/9] relative overflow-visible mb-16 mt-8 pt-12">
+              {/* Wooden table base - darker bottom layer for depth */}
+              <div className="absolute inset-1 rounded-[50%] bg-gray-950 shadow-2xl"></div>
+
+              {/* Outer table frame - mahogany rail with improved grain texture */}
+              <div
+                className="absolute inset-0 rounded-[50%] shadow-2xl"
+                style={{
+                  backgroundImage: `
+                    linear-gradient(to bottom, rgba(85, 33, 33, 0.95), rgba(52, 17, 17, 0.95)),
+                    url("data:image/svg+xml,%3Csvg width='200' height='200' viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.65' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)'/%3E%3C/svg%3E")
+                  `,
+                  boxShadow:
+                    "0 8px 24px rgba(0,0,0,0.4), inset 0 2px 8px rgba(255,255,255,0.1)",
+                }}
+              >
+                {/* Decorative inlay on the wooden rail */}
+                <div className="absolute inset-2 rounded-[50%] border-[1px] border-rose-900 opacity-20"></div>
+                <div className="absolute inset-3 rounded-[50%] border-[1px] border-gray-300 opacity-10"></div>
+              </div>
+
+              {/* Inner felt table with enhanced texture and subtle gradient */}
+              <div
+                className="absolute inset-4 rounded-[50%] bg-green-800 shadow-inner felt-texture"
+                style={{
+                  boxShadow:
+                    "inset 0 0 40px rgba(0,0,0,0.5), inset 0 0 80px rgba(0,0,0,0.2)",
+                }}
+              >
+                {/* Center spotlight effect */}
+                <div
+                  className="absolute inset-0 rounded-[50%] opacity-20"
+                  style={{
+                    background:
+                      "radial-gradient(circle at center, rgba(255,255,255,0.05) 0%, transparent 60%)",
+                  }}
+                ></div>
+
+                {/* Community Cards skeleton and pot */}
+                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 z-10">
+                  <div className="flex flex-col items-center">
+                    {/* Card skeletons */}
+                    <div className="flex gap-3 mb-6">
+                      {[...Array(5)].map((_, i) => (
+                        <div
+                          key={i}
+                          className="w-16 h-24 bg-gray-600 rounded-md animate-pulse opacity-40"
+                        >
+                          <div className="w-full h-full bg-gray-800 rounded-md opacity-50"></div>
+                        </div>
+                      ))}
+                    </div>
+
+                    {/* Pot skeleton */}
+                    <div className="bg-green-900 bg-opacity-50 backdrop-blur-sm px-6 py-3 rounded-full animate-pulse">
+                      <div className="w-24 h-6 bg-gray-600 opacity-40 rounded-md"></div>
+                    </div>
+
+                    {/* Loading text */}
+                    <div className="mt-4 text-white text-center text-xl font-light tracking-wider opacity-80">
+                      <div className="flex items-center justify-center space-x-1">
+                        <span>Loading game</span>
+                        <span
+                          className="animate-bounce"
+                          style={{ animationDelay: "0s" }}
+                        >
+                          .
+                        </span>
+                        <span
+                          className="animate-bounce"
+                          style={{ animationDelay: "0.2s" }}
+                        >
+                          .
+                        </span>
+                        <span
+                          className="animate-bounce"
+                          style={{ animationDelay: "0.4s" }}
+                        >
+                          .
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Player skeletons */}
+                {[...Array(6)].map((_, i) => {
+                  // Position players around the table, mimicking the actual layout
+                  const sixPlayerPositions = [0, 1, 3, 4, 5, 7] // Skip positions 2 and 6 for better spacing
+                  const positionIndex = sixPlayerPositions[i]
+                  const angle = positionIndex * 45 * (Math.PI / 180)
+
+                  // Adjust this radius to position players correctly on the table edge
+                  const radius = 40
+                  const x = 50 + radius * Math.cos(angle)
+                  const y = 50 + radius * Math.sin(angle)
+
+                  return (
+                    <div
+                      key={i}
+                      className="absolute w-32 h-24 transform -translate-x-1/2 -translate-y-1/2 z-10"
+                      style={{
+                        top: `${y}%`,
+                        left: `${x}%`,
+                      }}
+                    >
+                      <div className="bg-gray-800 bg-opacity-60 p-2 rounded-lg animate-pulse border border-gray-700">
+                        {/* Avatar skeleton */}
+                        <div className="flex items-center mb-2">
+                          <div className="w-8 h-8 rounded-full bg-gray-700 mr-2"></div>
+                          <div className="w-16 h-4 bg-gray-700 rounded"></div>
+                        </div>
+
+                        {/* Cards skeleton */}
+                        <div className="flex justify-center gap-1 mt-2">
+                          <div className="w-8 h-12 bg-gray-700 rounded-sm"></div>
+                          <div className="w-8 h-12 bg-gray-700 rounded-sm"></div>
+                        </div>
+                      </div>
+                    </div>
+                  )
+                })}
               </div>
             </div>
           )}
@@ -394,6 +533,7 @@ export default function Home() {
 
         {/* Game Stats and Statistics */}
         <div className="grid grid-cols-2 gap-4 mb-8">
+          {/* Current Round Info */}
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4">Current Round</h2>
             <p className="text-gray-400">
@@ -440,15 +580,64 @@ export default function Home() {
             </div>
           </div>
 
-          {/* Statistics Panel */}
-          {gameState && (
-            <StatsPanel
-              stats={gameStats}
-              playerNames={Object.fromEntries(
-                gameState.players.map((p) => [p.id, p.name])
-              )}
-            />
-          )}
+          {/* Hand Winner Card - Fixed nesting and display */}
+          <div className="bg-gray-800 rounded-lg p-6">
+            <h2 className="text-xl font-semibold mb-4">Hand Winner</h2>
+            {gameState &&
+            gameState.winningPlayers &&
+            gameState.winningPlayers.length > 0 ? (
+              <div className="text-center">
+                <div className="mb-3">
+                  <span className="font-semibold text-2xl text-yellow-400">
+                    🏆
+                  </span>
+                  <h3 className="text-lg font-bold text-yellow-400">
+                    {gameState.winningPlayers
+                      .map((playerId) => {
+                        const player = gameState.players.find(
+                          (p) => p.id === playerId
+                        )
+                        return player ? player.name : ""
+                      })
+                      .filter(Boolean)
+                      .join(", ")}
+                  </h3>
+                </div>
+                <p className="text-gray-400">
+                  Winning amount: $
+                  {lastWinAmount > 0
+                    ? lastWinAmount
+                    : gameState.activityLog && gameState.activityLog.length > 0
+                    ? (() => {
+                        // Find the most recent win entries for the winning players
+                        const winEntries = gameState.activityLog
+                          .filter(
+                            (entry) =>
+                              entry.action === "win" &&
+                              gameState.winningPlayers?.includes(entry.playerId)
+                          )
+                          .sort((a, b) => b.timestamp - a.timestamp)
+
+                        if (winEntries.length > 0) {
+                          return winEntries[0].amount || 0
+                        }
+                        return 0
+                      })()
+                    : 0}
+                </p>
+                {gameState.handResults && gameState.winningPlayers[0] && (
+                  <p className="text-gray-400 mt-2">
+                    Hand:{" "}
+                    <span className="text-yellow-400">
+                      {gameState.handResults[gameState.winningPlayers[0]]}
+                    </span>
+                  </p>
+                )}
+              </div>
+            ) : (
+              <p className="text-center text-gray-500 italic">No winner yet</p>
+            )}
+          </div>
         </div>
 
         {/* Activity Log */}

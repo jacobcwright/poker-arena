@@ -52,11 +52,11 @@ export default function Player({
   useEffect(() => {
     if (isTurn) {
       const interval = setInterval(() => {
-        setAnimateAvatar(prev => !prev);
-      }, 2000);
-      return () => clearInterval(interval);
+        setAnimateAvatar((prev) => !prev)
+      }, 2000)
+      return () => clearInterval(interval)
     }
-  }, [isTurn]);
+  }, [isTurn])
 
   // Show action animation when action changes
   useEffect(() => {
@@ -96,22 +96,33 @@ export default function Player({
     return "text-red-400"
   }
 
+  const getEquityBackground = () => {
+    if (equity === undefined || !isActive || !hand) return "bg-gray-500"
+    if (equity >= 75) return "bg-green-500"
+    if (equity >= 50) return "bg-lime-400"
+    if (equity >= 30) return "bg-yellow-400"
+    if (equity >= 15) return "bg-orange-400"
+    return "bg-red-400"
+  }
+
   // Generate avatar color based on player name
   const getAvatarColor = () => {
     const colors = [
-      'bg-blue-600',
-      'bg-red-600',
-      'bg-green-600',
-      'bg-purple-600',
-      'bg-yellow-600',
-      'bg-pink-600',
-      'bg-indigo-600',
-      'bg-teal-600',
-    ];
-    
+      "bg-blue-600",
+      "bg-red-600",
+      "bg-green-600",
+      "bg-purple-600",
+      "bg-yellow-600",
+      "bg-pink-600",
+      "bg-indigo-600",
+      "bg-teal-600",
+    ]
+
     // Simple hash function to get consistent color
-    const nameHash = name.split('').reduce((acc, char) => acc + char.charCodeAt(0), 0);
-    return colors[nameHash % colors.length];
+    const nameHash = name
+      .split("")
+      .reduce((acc, char) => acc + char.charCodeAt(0), 0)
+    return colors[nameHash % colors.length]
   }
 
   // Action text and styles with enhanced animations
@@ -160,8 +171,9 @@ export default function Player({
         className={`absolute -top-12 left-1/2 -translate-x-1/2 ${bgColor} px-4 py-2 rounded-lg 
                       text-white font-bold shadow-xl animate-rise-fade z-20 flex items-center`}
         style={{
-          animation: 'rise-fade 2s forwards',
-          boxShadow: '0 6px 12px rgba(0,0,0,0.3), 0 0 0 2px rgba(255,255,255,0.2)'
+          animation: "rise-fade 2s forwards",
+          boxShadow:
+            "0 6px 12px rgba(0,0,0,0.3), 0 0 0 2px rgba(255,255,255,0.2)",
         }}
       >
         <span className="mr-1.5">{icon}</span>
@@ -172,9 +184,9 @@ export default function Player({
 
   // Calculate spotlight opacity based on player state
   const getSpotlightOpacity = () => {
-    if (isWinner) return 0.3;
-    if (isTurn) return 0.2;
-    return 0;
+    if (isWinner) return 0.3
+    if (isTurn) return 0.2
+    return 0
   }
 
   return (
@@ -184,13 +196,15 @@ export default function Player({
     >
       {/* Player spotlight for active player */}
       {(isTurn || isWinner) && (
-        <div 
+        <div
           className={`absolute -inset-4 rounded-full transition-opacity duration-700 ${
-            isWinner ? "bg-gradient-radial from-yellow-400/30 to-transparent" : "bg-gradient-radial from-blue-400/20 to-transparent"
+            isWinner
+              ? "bg-gradient-radial from-yellow-400/30 to-transparent"
+              : "bg-gradient-radial from-blue-400/20 to-transparent"
           }`}
           style={{
             opacity: getSpotlightOpacity(),
-            animation: isWinner ? 'pulse 2s infinite' : ''
+            animation: isWinner ? "pulse 2s infinite" : "",
           }}
         ></div>
       )}
@@ -217,14 +231,18 @@ export default function Player({
                   transition-all duration-300 ${
                     isHovered ? "transform scale-105" : ""
                   } ${
-                    isTurn ? `transform ${animateAvatar ? 'scale-110' : 'scale-105'} transition-transform duration-1000` : ""
-                  }`}
+          isTurn
+            ? `transform ${
+                animateAvatar ? "scale-110" : "scale-105"
+              } transition-transform duration-1000`
+            : ""
+        }`}
         style={{
-          boxShadow: isWinner 
-            ? '0 0 15px rgba(250, 204, 21, 0.5)' 
-            : isTurn 
-              ? '0 0 12px rgba(96, 165, 250, 0.4)' 
-              : '0 4px 6px rgba(0, 0, 0, 0.2)'
+          boxShadow: isWinner
+            ? "0 0 15px rgba(250, 204, 21, 0.5)"
+            : isTurn
+            ? "0 0 12px rgba(96, 165, 250, 0.4)"
+            : "0 4px 6px rgba(0, 0, 0, 0.2)",
         }}
         onMouseEnter={() => setIsHovered(true)}
         onMouseLeave={() => setIsHovered(false)}
@@ -256,7 +274,7 @@ export default function Player({
                     hidden={false}
                   />
                 </div>
-                
+
                 {/* Improved card tooltip on hover */}
                 {isHovered && !showCards && !isActive && (
                   <div className="absolute -top-12 left-1/2 -translate-x-1/2 bg-black/90 text-white text-xs py-2 px-4 rounded-md whitespace-nowrap font-medium shadow-xl backdrop-blur-sm border border-gray-700 z-50">
@@ -291,14 +309,26 @@ export default function Player({
           {/* Player info section with enhanced layout */}
           <div className="flex items-center gap-2 mb-1.5">
             {/* Avatar circle with first letter of name */}
-            <div className={`${getAvatarColor()} w-6 h-6 rounded-full flex items-center justify-center text-white font-bold ${isDealer ? 'ring-2 ring-white' : ''}`}>
+            <div
+              className={`${getAvatarColor()} w-6 h-6 rounded-full flex items-center justify-center text-white font-bold ${
+                isDealer ? "ring-2 ring-white" : ""
+              }`}
+            >
               {name.charAt(0).toUpperCase()}
             </div>
-            
-            <div className={`font-bold text-lg ${chips <= 0 ? "text-red-500" : isWinner ? "text-yellow-300" : "text-white"}`}>
+
+            <div
+              className={`font-bold text-lg ${
+                chips <= 0
+                  ? "text-red-500"
+                  : isWinner
+                  ? "text-yellow-300"
+                  : "text-white"
+              }`}
+            >
               {name}
             </div>
-            
+
             {/* Status indicators */}
             <div className="flex gap-1">
               {isDealer && (
@@ -327,8 +357,8 @@ export default function Player({
           <div className="flex flex-wrap justify-center gap-2 text-sm mt-1">
             <div
               className={`px-2 py-1 rounded-full ${
-                chips <= 0 
-                  ? "bg-red-900/50 text-red-500 line-through" 
+                chips <= 0
+                  ? "bg-red-900/50 text-red-500 line-through"
                   : "bg-green-900/50 text-green-300"
               } font-mono`}
             >
@@ -355,13 +385,13 @@ export default function Player({
           {equity !== undefined && isActive && hand && (
             <div className="mt-2 w-full px-1">
               <div className="text-xs text-gray-400 mb-0.5 flex justify-between">
-                <span>Equity</span>
+                <span>Equity: </span>
                 <span className={getEquityColor()}>{equity.toFixed(1)}%</span>
               </div>
               <div className="w-full bg-gray-700 h-1.5 rounded-full overflow-hidden">
-                <div 
-                  className={`h-full ${getEquityColor()}`}
-                  style={{ width: `${Math.min(100, equity)}%` }}
+                <div
+                  className={`h-full ${getEquityBackground()}`}
+                  style={{ width: `${equity}%` }}
                 ></div>
               </div>
             </div>
