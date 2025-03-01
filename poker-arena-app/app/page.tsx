@@ -117,6 +117,7 @@ export default function Home() {
     model?: string
     temperature?: number
     max_tokens?: number
+    special_prompt?: string
   }
 
   // Configuration for different AI models
@@ -131,6 +132,16 @@ export default function Home() {
       model: "deepseek-r1:70b",
       temperature: 0.7,
       max_tokens: 3000,
+      special_prompt: "",
+    },
+    "DeepSeek-R1:70b-Bluff": {
+      name: "DeepSeek-R1:70b-Bluff",
+      apiEndpoint: "/api/ollama",
+      model: "deepseek-r1:70b",
+      temperature: 0.7,
+      max_tokens: 3000,
+      special_prompt:
+        "Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.",
     },
     "Claude-3.7-Thinking": {
       name: "Claude-3.7-Thinking",
@@ -138,6 +149,16 @@ export default function Home() {
       model: "claude-3-7-sonnet-20250219",
       temperature: 1,
       max_tokens: 10000,
+      special_prompt: "",
+    },
+    "Claude-3.7-Thinking-Bluff": {
+      name: "Claude-3.7-Thinking-Bluff",
+      apiEndpoint: "/api/claude-thinking",
+      model: "claude-3-7-sonnet-20250219",
+      temperature: 1,
+      max_tokens: 10000,
+      special_prompt:
+        "Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.",
     },
     "Claude-3.7": {
       name: "Claude-3.7",
@@ -145,6 +166,8 @@ export default function Home() {
       model: "claude-3-7-sonnet-20250219",
       temperature: 1,
       max_tokens: 10000,
+      special_prompt:
+        "Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.",
     },
   }
 
@@ -253,7 +276,7 @@ export default function Home() {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          prompt: generatePokerPrompt(player, gameState),
+          prompt: generatePokerPrompt(player, gameState, config),
           model: config.model,
           temperature: config.temperature ?? 0.7,
           max_tokens: config.max_tokens ?? 3000,
@@ -291,7 +314,11 @@ export default function Home() {
   }
 
   // Helper functions for Llama integration
-  const generatePokerPrompt = (player: Player, gameState: GameState) => {
+  const generatePokerPrompt = (
+    player: Player,
+    gameState: GameState,
+    config: ModelConfig
+  ) => {
     const prompt = `You are playing poker. 
     Your cards: ${
       player.hand?.map((c) => `${c.rank}${c.suit}`).join(", ") || ""
@@ -338,7 +365,7 @@ export default function Home() {
         : "None"
     }
 
-    Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.
+    ${config.special_prompt}
 
     What action would you take? Choose one:
     fold
