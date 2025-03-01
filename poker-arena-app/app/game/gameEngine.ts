@@ -61,7 +61,7 @@ export const createInitialGameState = (playerCount: number): GameState => {
       id: i,
       name: `NPC ${i + 1}`,
       hand: null,
-      chips: 1000, // Starting chips
+      chips: 100, // Starting chips
       currentBet: 0,
       isActive: true,
       isAllIn: false,
@@ -190,8 +190,12 @@ export const nextPlayer = (gameState: GameState): GameState => {
 
   let nextIndex = (newState.activePlayerIndex + 1) % players.length
 
-  // Find next active player
-  while (!players[nextIndex].isActive || players[nextIndex].isAllIn) {
+  // Find next active player who has chips and is not all-in
+  while (
+    !players[nextIndex].isActive ||
+    players[nextIndex].isAllIn ||
+    players[nextIndex].chips <= 0
+  ) {
     nextIndex = (nextIndex + 1) % players.length
 
     // If we've gone full circle, break to avoid infinite loop
@@ -253,13 +257,30 @@ export const logPhaseChange = (
 
 // Initialize blinds
 export const initializeBlinds = (gameState: GameState): GameState => {
-  const newState = { ...gameState }
+  let newState = { ...gameState }
   const { players, dealerIndex, minBet } = newState
 
-  // Small blind is to the left of the dealer
-  const smallBlindIndex = (dealerIndex + 1) % players.length
-  // Big blind is to the left of the small blind
-  const bigBlindIndex = (smallBlindIndex + 1) % players.length
+  // Small blind is to the left of the dealer, skipping eliminated players
+  let smallBlindIndex = (dealerIndex + 1) % players.length
+  while (!players[smallBlindIndex].isActive) {
+    smallBlindIndex = (smallBlindIndex + 1) % players.length
+    // If we've gone full circle, break to avoid infinite loop
+    if (smallBlindIndex === dealerIndex) {
+      // No active players left for small blind
+      return newState
+    }
+  }
+
+  // Big blind is to the left of the small blind, skipping eliminated players
+  let bigBlindIndex = (smallBlindIndex + 1) % players.length
+  while (!players[bigBlindIndex].isActive) {
+    bigBlindIndex = (bigBlindIndex + 1) % players.length
+    // If we've gone back to small blind, break to avoid infinite loop
+    if (bigBlindIndex === smallBlindIndex) {
+      // Only one active player - game should end
+      return newState
+    }
+  }
 
   // Post small blind
   const smallBlindAmount = minBet
@@ -273,27 +294,71 @@ export const initializeBlinds = (gameState: GameState): GameState => {
   bigBlind.chips -= bigBlindAmount
   bigBlind.currentBet = bigBlindAmount
 
-  // Update pot
-  newState.pot = smallBlindAmount + bigBlindAmount
+  // Handle case where a player goes negative from posting blinds
+  if (smallBlind.chips < 0) {
+    // Add the negative amount back to the pot (they only contributed what they had)
+    const correction = -smallBlind.chips
+    newState.pot -= correction
+    smallBlind.currentBet -= correction
+    smallBlind.chips = 0
+    smallBlind.isAllIn = true
+    // Log that player is all-in from small blind
+    newState = addLogEntry(
+      newState,
+      smallBlind.id,
+      "allIn",
+      `${smallBlind.name} is all-in from small blind`,
+      smallBlind.currentBet
+    )
+  }
 
-  // Set active player to be after the big blind
-  newState.activePlayerIndex = (bigBlindIndex + 1) % players.length
+  if (bigBlind.chips < 0) {
+    // Add the negative amount back to the pot (they only contributed what they had)
+    const correction = -bigBlind.chips
+    newState.pot -= correction
+    bigBlind.currentBet -= correction
+    bigBlind.chips = 0
+    bigBlind.isAllIn = true
+    // Log that player is all-in from big blind
+    newState = addLogEntry(
+      newState,
+      bigBlind.id,
+      "allIn",
+      `${bigBlind.name} is all-in from big blind`,
+      bigBlind.currentBet
+    )
+  }
+
+  // Update pot
+  newState.pot = smallBlind.currentBet + bigBlind.currentBet
+
+  // Set active player to be after the big blind, skipping eliminated players
+  let activeIndex = (bigBlindIndex + 1) % players.length
+  while (!players[activeIndex].isActive) {
+    activeIndex = (activeIndex + 1) % players.length
+    // If we've gone full circle, use the small blind as the active player
+    if (activeIndex === bigBlindIndex) {
+      activeIndex = smallBlindIndex
+      break
+    }
+  }
+  newState.activePlayerIndex = activeIndex
 
   // Log blind actions
   let updatedState = addLogEntry(
     newState,
     smallBlind.id,
     "blind",
-    `Posts small blind of $${smallBlindAmount}`,
-    smallBlindAmount
+    `Posts small blind of $${smallBlind.currentBet}`,
+    smallBlind.currentBet
   )
 
   updatedState = addLogEntry(
     updatedState,
     bigBlind.id,
     "blind",
-    `Posts big blind of $${bigBlindAmount}`,
-    bigBlindAmount
+    `Posts big blind of $${bigBlind.currentBet}`,
+    bigBlind.currentBet
   )
 
   return updatedState
@@ -332,8 +397,12 @@ export const processBettingRound = async (
   while (true) {
     const activePlayer = currentState.players[currentState.activePlayerIndex]
 
-    // Skip players who have folded or are all-in
-    if (!activePlayer.isActive || activePlayer.isAllIn) {
+    // Skip players who have folded, are all-in, or have no chips
+    if (
+      !activePlayer.isActive ||
+      activePlayer.isAllIn ||
+      activePlayer.chips <= 0
+    ) {
       // Move to next player
       currentState = nextPlayer(currentState)
       continue
@@ -409,8 +478,17 @@ export const processBettingRound = async (
         lastRaiser = currentState.activePlayerIndex
 
         // If player is now out of chips, mark as all-in
-        if (activePlayer.chips === 0) {
+        if (activePlayer.chips <= 0) {
           activePlayer.isAllIn = true
+          // Ensure chips don't go negative
+          if (activePlayer.chips < 0) {
+            // Add the negative amount back to the pot
+            currentState.pot += activePlayer.chips
+            // Adjust the current bet
+            activePlayer.currentBet += activePlayer.chips
+            // Set chips to exactly zero
+            activePlayer.chips = 0
+          }
         }
         break
 
@@ -453,7 +531,7 @@ export const processBettingRound = async (
 
     // Count active players (not folded or all-in)
     const activePlayerCount = currentState.players.filter(
-      (p) => p.isActive && !p.isAllIn
+      (p) => p.isActive && !p.isAllIn && p.chips > 0
     ).length
 
     // If only one player remains active, end the round
@@ -542,14 +620,24 @@ export const setupNextHand = (gameState: GameState): GameState => {
     players: newPlayers,
   }
 
-  // Move dealer button
-  newState.dealerIndex = (newState.dealerIndex + 1) % newPlayers.length
+  // Move dealer button to the next player with chips > 0
+  let nextDealerIndex = (newState.dealerIndex + 1) % newPlayers.length
+  // Find next player with chips
+  while (newPlayers[nextDealerIndex].chips <= 0) {
+    nextDealerIndex = (nextDealerIndex + 1) % newPlayers.length
+    // If we've gone full circle and no players have chips, break to avoid infinite loop
+    if (nextDealerIndex === newState.dealerIndex) {
+      break
+    }
+  }
+  newState.dealerIndex = nextDealerIndex
 
   // Reset player round-specific states without changing chip counts
   newPlayers.forEach((player) => {
     player.hand = null
     player.currentBet = 0
-    player.isActive = true
+    // Only set player as active if they have chips
+    player.isActive = player.chips > 0
     player.isAllIn = false
     player.isDealer = player.id === newState.dealerIndex
     player.isTurn = false
@@ -713,6 +801,14 @@ export const gameLoop = async (
 ): Promise<void> => {
   let currentState = initialGameState
   while (!shouldStop()) {
+    // Mark any players with zero or negative chips as eliminated
+    currentState.players.forEach((player) => {
+      if (player.chips <= 0) {
+        player.isActive = false
+        player.chips = 0 // Ensure chips don't go negative
+      }
+    })
+
     // Check game over: if only one player has chips remaining, end the loop
     const playersWithChips = currentState.players.filter((p) => p.chips > 0)
     if (playersWithChips.length <= 1) {

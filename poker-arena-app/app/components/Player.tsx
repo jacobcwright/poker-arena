@@ -143,6 +143,8 @@ export default function Player({
                       ? "border-blue-400"
                       : isHovered
                       ? "border-green-400 bg-gray-700"
+                      : chips <= 0
+                      ? "border-red-700 bg-gray-900 opacity-70"
                       : "border-gray-700"
                   }
                   ${
@@ -214,16 +216,43 @@ export default function Player({
                 D
               </div>
             )}
-            <div className="font-bold">{name}</div>
+            <div className={`font-bold ${chips <= 0 ? "text-red-500" : ""}`}>
+              {name}
+            </div>
+            {chips <= 0 && (
+              <div className="bg-red-700 text-white text-xs px-1 rounded">
+                OUT
+              </div>
+            )}
           </div>
 
+          {/* Add an overlay "X" for bankrupt players */}
+          {chips <= 0 && (
+            <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+              <div className="text-red-600 text-6xl font-bold opacity-40">
+                ✖
+              </div>
+            </div>
+          )}
+
           <div className="flex flex-wrap gap-2 text-sm mt-1">
-            <div className="text-green-400">${chips}</div>
+            <div
+              className={`${
+                chips <= 0 ? "text-red-500 line-through" : "text-green-400"
+              }`}
+            >
+              ${chips}
+            </div>
             {currentBet > 0 && (
               <div className="text-yellow-400">Bet: ${currentBet}</div>
             )}
             {isAllIn && <div className="text-red-400">ALL IN</div>}
             {!isActive && <div className="text-gray-400">FOLDED</div>}
+            {chips <= 0 && (
+              <div className="text-red-500 font-bold animate-pulse">
+                BANKRUPT
+              </div>
+            )}
           </div>
 
           {/* Display equity odds */}

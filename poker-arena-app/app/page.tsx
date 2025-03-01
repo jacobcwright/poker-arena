@@ -251,15 +251,34 @@ export default function Home() {
               <h3 className="text-lg font-semibold mb-3">Player Types</h3>
               <div className="grid grid-cols-3 gap-4">
                 {gameState.players.map((player) => (
-                  <div key={player.id} className="bg-gray-700 p-3 rounded">
-                    <div className="font-medium mb-2">{player.name}</div>
+                  <div
+                    key={player.id}
+                    className={`p-3 rounded ${
+                      player.chips <= 0
+                        ? "bg-red-900 bg-opacity-30 border border-red-700"
+                        : "bg-gray-700"
+                    }`}
+                  >
+                    <div className="font-medium mb-2 flex items-center justify-between">
+                      <span>{player.name}</span>
+                      <span className="text-sm">${player.chips}</span>
+                      {player.chips <= 0 && (
+                        <span className="text-xs text-red-400 font-bold">
+                          BANKRUPT
+                        </span>
+                      )}
+                    </div>
                     <select
-                      className="bg-gray-600 rounded px-3 py-1 w-full"
+                      className={`rounded px-3 py-1 w-full ${
+                        player.chips <= 0
+                          ? "bg-gray-800 text-gray-500 cursor-not-allowed"
+                          : "bg-gray-600"
+                      }`}
                       value={playerTypes[player.id] || "AI"}
                       onChange={(e) =>
                         handlePlayerTypeChange(player.id, e.target.value)
                       }
-                      disabled={isGameRunning}
+                      disabled={isGameRunning || player.chips <= 0}
                     >
                       <option value="AI">Regular AI</option>
                       <option value="Llama">Llama Model</option>
@@ -390,10 +409,29 @@ export default function Home() {
               <h3 className="font-semibold mb-2">Player Chips</h3>
               <div className="text-gray-400">
                 {gameState?.players.map((player) => (
-                  <div key={player.id} className="mb-1">
-                    {player.name}: ${player.chips}
-                    {player.isDealer && " (Dealer)"}
-                    {player.isTurn && " (Active)"}
+                  <div key={player.id} className="mb-1 flex items-center">
+                    <span
+                      className={
+                        player.chips <= 0 ? "line-through text-red-400" : ""
+                      }
+                    >
+                      {player.name}: ${player.chips}
+                    </span>
+                    {player.isDealer && (
+                      <span className="ml-2 bg-blue-600 text-xs px-1 rounded">
+                        Dealer
+                      </span>
+                    )}
+                    {player.isTurn && (
+                      <span className="ml-2 bg-green-600 text-xs px-1 rounded">
+                        Active
+                      </span>
+                    )}
+                    {player.chips <= 0 && (
+                      <span className="ml-2 bg-red-700 text-xs px-1 rounded animate-pulse">
+                        BANKRUPT
+                      </span>
+                    )}
                   </div>
                 ))}
               </div>
