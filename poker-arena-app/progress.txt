@@ -33,6 +33,9 @@ Created a real-time poker simulation application where Claude NPCs play Texas Ho
 - Added animation for player actions (fold, check, call, bet, raise)
 - Built hand results display for showdown phase
 - Created statistics panel to track game progress
+- Added hover feature to reveal NPC cards during gameplay
+- Implemented custom positioning logic for different player counts
+- Added stylish tooltip showing card values on hover
 
 ### Game Flow Control
 - Implemented start/stop functionality
@@ -47,6 +50,13 @@ Created a real-time poker simulation application where Claude NPCs play Texas Ho
   - Biggest wins
   - Win counts for each player
 
+### UX Improvements
+- Added animated card flipping when revealing cards on hover
+- Optimized player spacing around the table for 2-6 players
+- Added visual indication when hovering over players
+- Enhanced tooltip to display card values with proper suit colors
+- Added user tip about hovering feature in the game controls
+  
 ## Development Steps
 
 1. Initial setup with basic poker table and players
@@ -60,6 +70,9 @@ Created a real-time poker simulation application where Claude NPCs play Texas Ho
 9. Added pause/resume functionality
 10. Fixed positioning of hand results overlay for better visibility
 11. Improved overall styling and user experience
+12. Enhanced player positioning algorithm for better table layout
+13. Added card reveal functionality when hovering over players
+14. Implemented animated card flipping transitions
 
 ## Future Enhancements
 - Add player avatars and more personality traits for NPCs

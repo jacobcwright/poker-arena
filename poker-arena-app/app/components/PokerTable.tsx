@@ -47,8 +47,34 @@ export default function PokerTable({ gameState }: PokerTableProps) {
 
       {/* Players */}
       {players.map((player, index) => {
-        // Calculate position index based on total players for even distribution
-        const positionIndex = Math.floor((index * 8) / players.length) % 8
+        // Custom position mapping for different player counts
+        let positionIndex
+
+        // Specific mappings for common player counts
+        if (players.length === 6) {
+          // For 6 players, use these specific positions (evenly spaced)
+          const sixPlayerPositions = [0, 1, 2, 4, 6, 7] // Skip positions 3 and 5 for better spacing
+          positionIndex = sixPlayerPositions[index]
+        } else if (players.length === 2) {
+          // For heads-up play (2 players)
+          const twoPlayerPositions = [0, 4] // Top and bottom only
+          positionIndex = twoPlayerPositions[index]
+        } else if (players.length === 3) {
+          // For 3 players
+          const threePlayerPositions = [0, 3, 5] // Bottom, top-right, top-left
+          positionIndex = threePlayerPositions[index]
+        } else if (players.length === 4) {
+          // For 4 players
+          const fourPlayerPositions = [0, 2, 4, 6] // Bottom, right, top, left
+          positionIndex = fourPlayerPositions[index]
+        } else if (players.length === 5) {
+          // For 5 players
+          const fivePlayerPositions = [0, 1, 3, 5, 7] // Distributed around the table
+          positionIndex = fivePlayerPositions[index]
+        } else {
+          // General formula for other player counts
+          positionIndex = Math.floor((index * 8) / players.length) % 8
+        }
 
         return (
           <Player
