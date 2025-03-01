@@ -1,16 +1,16 @@
-import { createClient } from "@supabase/supabase-js";
-import { NextResponse } from "next/server";
+import { createClient } from "@supabase/supabase-js"
+import { NextResponse } from "next/server"
 
 // Initialize Supabase client
-const supabaseUrl = "https://lfcwyepxzewahcqfoxrx.supabase.co"; //process.env.NEXT_PUBLIC_SUPABASE_URL;
+const supabaseUrl = "https://lfcwyepxzewahcqfoxrx.supabase.co" //process.env.NEXT_PUBLIC_SUPABASE_URL;
 const supabaseKey =
-  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmY3d5ZXB4emV3YWhjcWZveHJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4MjczNTgsImV4cCI6MjA1NjQwMzM1OH0.BA33QYo7htgSeZEiPWDVdAjXOGL8fg0te_HYPcwrxG0"; //process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+  "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImxmY3d5ZXB4emV3YWhjcWZveHJ4Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NDA4MjczNTgsImV4cCI6MjA1NjQwMzM1OH0.BA33QYo7htgSeZEiPWDVdAjXOGL8fg0te_HYPcwrxG0" //process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
 if (!supabaseUrl || !supabaseKey) {
-  throw new Error("Missing Supabase environment variables");
+  throw new Error("Missing Supabase environment variables")
 }
 
-const supabase = createClient(supabaseUrl, supabaseKey);
+const supabase = createClient(supabaseUrl, supabaseKey)
 
 export async function GET() {
   try {
@@ -23,47 +23,49 @@ export async function GET() {
           name
         )
       `
-    );
+    )
 
     if (error) {
-      console.error("Error fetching data:", error);
-      return NextResponse.json({ error: error.message }, { status: 500 });
+      console.error("Error fetching data:", error)
+      return NextResponse.json({ error: error.message }, { status: 500 })
     }
 
     // Process the data to calculate average profit per model
-    const modelProfits = new Map();
+    const modelProfits = new Map()
 
     if (data) {
-      data.forEach((game: any) => {
-        const { winner, profit } = game;
+      data.forEach((game) => {
+        const { winner, profit } = game
         // Handle the model data safely, considering it might be an array or object
-        let modelName = "Unknown Model";
+        let modelName = "Unknown Model"
 
         if (game.model) {
           // If model is an array with at least one item
           if (Array.isArray(game.model) && game.model.length > 0) {
-            modelName = game.model[0].name || "Unknown Model";
+            modelName = game.model[0].name || "Unknown Model"
           }
           // If model is a direct object
-          else if (typeof game.model === "object" && game.model.name) {
-            modelName = game.model.name;
+          else if (typeof game.model === "object" && game.model !== null) {
+            // Use type assertion
+            const model = game.model as any
+            modelName = model.name || "Unknown Model"
           }
         }
 
         // If this model is already in our map, update its data
         if (modelProfits.has(modelName)) {
-          const modelData = modelProfits.get(modelName);
-          modelData.totalProfit += profit;
-          modelData.count += 1;
+          const modelData = modelProfits.get(modelName)
+          modelData.totalProfit += profit
+          modelData.count += 1
         } else {
           // First time seeing this model
           modelProfits.set(modelName, {
             totalProfit: profit,
             count: 1,
             winner_id: winner,
-          });
+          })
         }
-      });
+      })
     }
 
     // Calculate averages and convert to array format for the frontend
@@ -74,17 +76,17 @@ export async function GET() {
         modelName: modelName,
         gamesCount: data.count,
       })
-    );
+    )
 
     // Sort by average profit (descending)
-    result.sort((a, b) => b.profit - a.profit);
+    result.sort((a, b) => b.profit - a.profit)
 
-    return NextResponse.json({ data: result });
+    return NextResponse.json({ data: result })
   } catch (error) {
-    console.error("Unexpected error:", error);
+    console.error("Unexpected error:", error)
     return NextResponse.json(
       { error: "An unexpected error occurred" },
       { status: 500 }
-    );
+    )
   }
 }

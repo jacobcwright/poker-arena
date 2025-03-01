@@ -1,6 +1,5 @@
 import { NextRequest, NextResponse } from "next/server"
 import { Emotion } from "../../types"
-import Anthropic from "@anthropic-ai/sdk"
 import OpenAI from "openai"
 
 // Define types for the request and response
@@ -17,8 +16,6 @@ interface OllamaResponseBody {
   chainOfThought?: string
   reasoning_summary?: string
 }
-
-const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY || ""
 
 export async function POST(request: NextRequest) {
   try {

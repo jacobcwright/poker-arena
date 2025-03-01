@@ -2,23 +2,8 @@
 import { useEffect, useState, useRef } from "react"
 import { GameState, GameStats, Player, PlayerAction, Emotion } from "./types"
 import PokerTable from "./components/PokerTable"
-import {
-  createInitialGameState,
-  dealFlop,
-  dealPlayerCards,
-  dealRiver,
-  dealTurn,
-  processBettingRound,
-  initializeBlinds,
-  determineWinners,
-  awardPot,
-  setupNextHand,
-  addLogEntry,
-  gameLoop,
-} from "./game/gameEngine"
+import { createInitialGameState, gameLoop } from "./game/gameEngine"
 import { assignPersonalities, determineAction } from "./game/pokerAI"
-import { calculateEquity } from "./game/equityCalculator"
-import StatsPanel from "./components/StatsPanel"
 import ActivityLog from "./components/ActivityLog"
 
 // Define interface for AI decision to ensure type consistency
@@ -100,11 +85,7 @@ export default function Home() {
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [gamePhaseDelay, setGamePhaseDelay] = useState(2000) // milliseconds
   const roundRef = useRef(0)
-  const [gameStats, setGameStats] = useState<GameStats>(createInitialStats())
   const [isPaused, setIsPaused] = useState(false)
-  const pauseResumeRef = useRef<{ resolve: (() => void) | null }>({
-    resolve: null,
-  })
   const isPausedRef = useRef(false)
   const [isLogOpen, setIsLogOpen] = useState(false)
   const [playerTypes, setPlayerTypes] = useState<Record<number, string>>({}) // Track player types
@@ -558,7 +539,7 @@ export default function Home() {
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">Poker Arena</h1>
           <p className="text-gray-400">
-            Watch AI Agents compete in Texas Hold'em
+            Watch AI Agents compete in Texas Hold&apos;em
           </p>
         </header>
 
@@ -950,14 +931,4 @@ export default function Home() {
       </main>
     </div>
   )
-}
-
-// Create an initial stats object
-const createInitialStats = (): GameStats => {
-  return {
-    handsPlayed: 0,
-    biggestPot: 0,
-    biggestWin: {},
-    handWins: {},
-  }
 }
