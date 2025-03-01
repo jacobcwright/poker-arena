@@ -16,6 +16,7 @@ import {
 } from "./game/gameEngine"
 import { assignPersonalities } from "./game/pokerAI"
 import StatsPanel from "./components/StatsPanel"
+import ActivityLog from "./components/ActivityLog"
 
 export default function Home() {
   const [playerCount, setPlayerCount] = useState(4)
@@ -29,6 +30,7 @@ export default function Home() {
     resolve: null,
   })
   const isPausedRef = useRef(false)
+  const [isLogOpen, setIsLogOpen] = useState(false)
 
   // Initialize game state when player count changes
   useEffect(() => {
@@ -310,6 +312,29 @@ export default function Home() {
             )}
           </div>
 
+          {/* Activity Log toggle */}
+          <div className="flex justify-center mt-4">
+            <button
+              onClick={() => setIsLogOpen(!isLogOpen)}
+              className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm flex items-center gap-2"
+            >
+              <span>{isLogOpen ? "Hide" : "Show"} Activity Log</span>
+              <svg
+                xmlns="http://www.w3.org/2000/svg"
+                width="16"
+                height="16"
+                viewBox="0 0 24 24"
+                fill="none"
+                stroke="currentColor"
+                strokeWidth="2"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              >
+                <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z"></path>
+              </svg>
+            </button>
+          </div>
+
           {/* Hint for card hover feature */}
           <div className="text-center mt-3 text-gray-400 text-sm">
             <span className="bg-gray-700 px-2 py-1 rounded inline-block">
@@ -368,6 +393,13 @@ export default function Home() {
             />
           )}
         </div>
+
+        {/* Activity Log */}
+        <ActivityLog
+          gameState={gameState}
+          isOpen={isLogOpen}
+          onToggle={() => setIsLogOpen(!isLogOpen)}
+        />
       </main>
     </div>
   )

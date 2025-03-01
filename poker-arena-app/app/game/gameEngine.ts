@@ -1,5 +1,17 @@
-import { Card, GameState, Player, PlayerAction, Rank, Suit } from "../types"
-import { determineAction, assignPersonalities } from "./pokerAI"
+import {
+  ActivityLogEntry,
+  Card,
+  GameState,
+  Player,
+  PlayerAction,
+  Rank,
+  Suit,
+} from "../types"
+import {
+  determineAction,
+  assignPersonalities,
+  getActionDescription,
+} from "./pokerAI"
 import { evaluateHand, compareHands, HandResult } from "./handEvaluator"
 
 export const createNewDeck = (): Card[] => {
@@ -67,6 +79,7 @@ export const createInitialGameState = (playerCount: number): GameState => {
     dealerIndex: 0,
     minBet: 10, // Small blind amount
     isRunning: false,
+    activityLog: [], // Initialize with empty activity log
   }
 }
 
@@ -90,7 +103,13 @@ export const dealPlayerCards = (gameState: GameState): GameState => {
   }
 
   newState.currentPhase = "preFlop"
-  return newState
+
+  // Log the dealing action
+  return logPhaseChange(
+    newState,
+    "preFlop",
+    "Cards dealt to players. Pre-flop betting begins."
+  )
 }
 
 export const dealFlop = (gameState: GameState): GameState => {
@@ -109,7 +128,13 @@ export const dealFlop = (gameState: GameState): GameState => {
   }
 
   newState.currentPhase = "flop"
-  return newState
+
+  // Log the flop action
+  return logPhaseChange(
+    newState,
+    "flop",
+    "Flop cards revealed. Flop betting begins."
+  )
 }
 
 export const dealTurn = (gameState: GameState): GameState => {
@@ -126,7 +151,13 @@ export const dealTurn = (gameState: GameState): GameState => {
   }
 
   newState.currentPhase = "turn"
-  return newState
+
+  // Log the turn action
+  return logPhaseChange(
+    newState,
+    "turn",
+    "Turn card revealed. Turn betting begins."
+  )
 }
 
 export const dealRiver = (gameState: GameState): GameState => {
@@ -143,7 +174,13 @@ export const dealRiver = (gameState: GameState): GameState => {
   }
 
   newState.currentPhase = "river"
-  return newState
+
+  // Log the river action
+  return logPhaseChange(
+    newState,
+    "river",
+    "River card revealed. Final betting round begins."
+  )
 }
 
 export const nextPlayer = (gameState: GameState): GameState => {
@@ -168,6 +205,53 @@ export const nextPlayer = (gameState: GameState): GameState => {
   newState.activePlayerIndex = nextIndex
 
   return newState
+}
+
+// Helper function to add a log entry
+export const addLogEntry = (
+  state: GameState,
+  playerId: number,
+  action: ActivityLogEntry["action"],
+  description: string,
+  amount?: number
+): GameState => {
+  const newState = { ...state }
+  const player = newState.players.find((p) => p.id === playerId)
+
+  if (!player) return newState
+
+  // Initialize log array if it doesn't exist
+  if (!newState.activityLog) {
+    newState.activityLog = []
+  }
+
+  // Create the log entry
+  const logEntry: ActivityLogEntry = {
+    playerId,
+    playerName: player.name,
+    action,
+    amount,
+    description,
+    timestamp: Date.now(),
+    phase: newState.currentPhase,
+  }
+
+  // Add to the activity log
+  newState.activityLog.push(logEntry)
+
+  return newState
+}
+
+// Log a phase change
+export const logPhaseChange = (
+  state: GameState,
+  phase: GameState["currentPhase"],
+  description: string
+): GameState => {
+  // Use dealer as the "actor" for phase changes
+  const dealerId = state.players[state.dealerIndex]?.id ?? 0
+
+  return addLogEntry(state, dealerId, "phase", description)
 }
 
 // Initialize blinds
@@ -198,7 +282,24 @@ export const initializeBlinds = (gameState: GameState): GameState => {
   // Set active player to be after the big blind
   newState.activePlayerIndex = (bigBlindIndex + 1) % players.length
 
-  return newState
+  // Log blind actions
+  let updatedState = addLogEntry(
+    newState,
+    smallBlind.id,
+    "blind",
+    `Posts small blind of $${smallBlindAmount}`,
+    smallBlindAmount
+  )
+
+  updatedState = addLogEntry(
+    updatedState,
+    bigBlind.id,
+    "blind",
+    `Posts big blind of $${bigBlindAmount}`,
+    bigBlindAmount
+  )
+
+  return updatedState
 }
 
 // Process a betting round
@@ -247,6 +348,13 @@ export const processBettingRound = async (
       activePlayer.id
     )
 
+    // Get a description of the AI's thought process for the log
+    const actionDescription = getActionDescription(
+      activePlayer.id,
+      action,
+      betAmount
+    )
+
     // Process the action
     switch (action) {
       case "fold":
@@ -265,8 +373,9 @@ export const processBettingRound = async (
 
       case "call":
         // Add the difference to the pot
-        activePlayer.chips -= highestBet - activePlayer.currentBet
-        currentState.pot += highestBet - activePlayer.currentBet
+        const callAmount = highestBet - activePlayer.currentBet
+        activePlayer.chips -= callAmount
+        currentState.pot += callAmount
         activePlayer.currentBet = highestBet
         break
 
@@ -313,6 +422,17 @@ export const processBettingRound = async (
         }
         break
     }
+
+    // Log the player action
+    currentState = addLogEntry(
+      currentState,
+      activePlayer.id,
+      action,
+      actionDescription,
+      action === "bet" || action === "raise"
+        ? activePlayer.currentBet
+        : undefined
+    )
 
     // Mark this player as having acted
     hasActed.add(activePlayer.id)
@@ -427,8 +547,17 @@ export const setupNextHand = (gameState: GameState): GameState => {
   newState.pot = 0
   newState.currentPhase = "idle"
 
+  // Log new round
+  const updatedState = addLogEntry(
+    newState,
+    newState.players[newState.dealerIndex].id,
+    "phase",
+    `New hand begins. Round ${gameState.round ? gameState.round + 1 : 1}`,
+    undefined
+  )
+
   // Initialize blinds and set the active player
-  return initializeBlinds(newState)
+  return initializeBlinds(updatedState)
 }
 
 // Award pot to winner(s)
@@ -444,19 +573,31 @@ export const awardPot = (
   const winAmount = Math.floor(newState.pot / winners.length)
   const remainder = newState.pot % winners.length
 
+  let updatedState = { ...newState }
+
   winners.forEach((winner, index) => {
     const playerIndex = newState.players.findIndex((p) => p.id === winner.id)
     if (playerIndex !== -1) {
       // Add an extra chip to early winners if there's a remainder
       const extra = index < remainder ? 1 : 0
-      newState.players[playerIndex].chips += winAmount + extra
+      const totalWinAmount = winAmount + extra
+      newState.players[playerIndex].chips += totalWinAmount
+
+      // Log the win
+      updatedState = addLogEntry(
+        updatedState,
+        winner.id,
+        "win",
+        `Wins $${totalWinAmount} from the pot`,
+        totalWinAmount
+      )
     }
   })
 
   // Reset the pot
-  newState.pot = 0
+  updatedState.pot = 0
 
-  return newState
+  return updatedState
 }
 
 // To be implemented: hand evaluation, betting logic, round progression, etc.

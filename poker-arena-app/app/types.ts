@@ -43,6 +43,16 @@ export type GamePhase =
   | "river"
   | "showdown"
 
+export interface ActivityLogEntry {
+  playerId: number
+  playerName: string
+  action: PlayerAction | "deal" | "win" | "blind" | "phase"
+  amount?: number
+  description: string
+  timestamp: number
+  phase: GamePhase
+}
+
 export interface GameState {
   players: Player[]
   deck: Card[]
@@ -58,6 +68,7 @@ export interface GameState {
   handResults?: Record<number, string>
   playerActions?: Record<number, { type: PlayerAction; amount?: number }>
   stats?: GameStats
+  activityLog?: ActivityLogEntry[]
 }
 
 export type PlayerAction = "fold" | "check" | "call" | "bet" | "raise" | "allIn"
