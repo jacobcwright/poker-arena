@@ -1,0 +1,39 @@
+Poker Game Simulation with Claude NPCs
+
+Objective:
+Develop a poker game simulation where AI-driven players—referred to as Claude NPCs—compete against each other. The application should provide a real-time viewing experience of the game, with an interface to customize the number of AI players and a game engine to manage the poker gameplay.
+
+Requirements:
+
+User Interface (UI):
+
+Create an intuitive UI that allows the user to specify the number of Claude NPCs participating in the game.
+Include controls for starting, pausing, and resetting games.
+Provide a real-time display of game progress, including player actions, bets, and game state updates.
+Game Engine:
+
+Design a robust game engine to handle all aspects of the poker game:
+Card shuffling and dealing.
+Managing betting rounds (e.g., pre-flop, flop, turn, river).
+Tracking player actions (bet, call, raise, fold) and game state.
+Determining hand rankings and the winning player(s) at the end of each round.
+Ensure the engine can handle multiple rounds and maintain a seamless transition between games.
+Claude NPC Integration:
+
+Integrate AI logic for Claude NPCs that simulates realistic poker strategies.
+Ensure each Claude NPC makes decisions based on the current game state and typical poker strategies (bluffing, betting patterns, risk management, etc.).
+Allow for future enhancements to the AI, such as learning from previous games or adapting strategies.
+Real-Time Gameplay Experience:
+
+Provide visual feedback to the user, showing the game’s progression and the decision-making process of the Claude NPCs.
+Implement animations or transitions that clearly indicate card deals, bets, and wins.
+Optionally, include statistics or commentary that explain key moments during the game.
+Extensibility and Maintenance:
+
+Design the application with a modular architecture to facilitate future updates or feature additions (e.g., additional game modes, advanced AI behaviors, multiplayer support).
+Ensure code quality, documentation, and testability to support long-term maintenance.
+Deliverables:
+
+A fully functional poker game simulation that meets the requirements above.
+Source code with appropriate comments and documentation.
+A user guide explaining how to set up, run, and interact with the game.

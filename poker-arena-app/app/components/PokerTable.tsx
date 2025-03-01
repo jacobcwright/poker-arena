@@ -46,15 +46,20 @@ export default function PokerTable({ gameState }: PokerTableProps) {
       </div>
 
       {/* Players */}
-      {players.map((player, index) => (
-        <Player
-          key={player.id}
-          player={player}
-          position={index}
-          showCards={currentPhase === "showdown"}
-          isWinner={winningPlayers?.includes(player.id)}
-        />
-      ))}
+      {players.map((player, index) => {
+        // Calculate position index based on total players for even distribution
+        const positionIndex = Math.floor((index * 8) / players.length) % 8
+
+        return (
+          <Player
+            key={player.id}
+            player={player}
+            position={positionIndex}
+            showCards={currentPhase === "showdown"}
+            isWinner={winningPlayers?.includes(player.id)}
+          />
+        )
+      })}
 
       {/* Improved Hand results overlay for showdown - moved outside the cards div and given a higher z-index */}
       {showHandResults && (
