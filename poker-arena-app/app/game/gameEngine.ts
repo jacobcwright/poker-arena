@@ -304,10 +304,12 @@ export const processBettingRound = async (
   gameState: GameState,
   setGameState: (state: GameState) => void,
   delay: number,
-  customDecisionFn?: (
+  getPlayerDecision?: (
     player: Player,
     gameState: GameState
-  ) => Promise<{ action: PlayerAction; betAmount?: number }>
+  ) =>
+    | Promise<{ action: PlayerAction; betAmount?: number }>
+    | { action: PlayerAction; betAmount?: number }
 ): Promise<GameState> => {
   // This is a work in progress implementation
   let currentState = { ...gameState }
@@ -348,21 +350,11 @@ export const processBettingRound = async (
       break
     }
 
-    // Get player's action - use custom function if provided, otherwise use default AI
-    let action,
-      betAmount = 0
-
-    if (customDecisionFn) {
-      // Use the custom decision function
-      const decision = await customDecisionFn(activePlayer, currentState)
-      action = decision.action
-      betAmount = decision.betAmount || 0
-    } else {
-      // Use the default AI decision
-      const decision = determineAction(currentState, activePlayer.id)
-      action = decision.action
-      betAmount = decision.betAmount || 0
-    }
+    // Get player's action from AI
+    const { action, betAmount = 0 } = determineAction(
+      currentState,
+      activePlayer.id
+    )
 
     // Get a description of the AI's thought process for the log
     const actionDescription = getActionDescription(
@@ -542,31 +534,41 @@ export const determineWinners = (
 
 // Reset for a new hand
 export const setupNextHand = (gameState: GameState): GameState => {
-  // Mutate the existing gameState to preserve players and their chip counts
-  gameState.dealerIndex = (gameState.dealerIndex + 1) % gameState.players.length
+  // Deep clone the players array to preserve chip counts
+  const newPlayers = gameState.players.map((player) => ({ ...player }))
 
-  // Reset player round-specific states while preserving chips
-  gameState.players.forEach((player) => {
+  const newState: GameState = {
+    ...gameState,
+    players: newPlayers,
+  }
+
+  // Move dealer button
+  newState.dealerIndex = (newState.dealerIndex + 1) % newPlayers.length
+
+  // Reset player round-specific states without changing chip counts
+  newPlayers.forEach((player) => {
     player.hand = null
     player.currentBet = 0
     player.isActive = true
     player.isAllIn = false
-    player.isDealer = player.id === gameState.dealerIndex
+    player.isDealer = player.id === newState.dealerIndex
     player.isTurn = false
   })
 
-  // Reset round-specific game state
-  gameState.deck = createNewDeck()
-  gameState.communityCards = []
-  gameState.pot = 0
-  gameState.currentPhase = "idle" as GameState["currentPhase"]
+  // Reset game state for the new round
+  newState.deck = createNewDeck()
+  newState.communityCards = []
+  newState.pot = 0
+  newState.currentPhase = "idle"
+  // Increment round counter
+  newState.round = gameState.round ? gameState.round + 1 : 1
 
   // Log new round
   const updatedState = addLogEntry(
-    gameState,
-    gameState.players[gameState.dealerIndex].id,
+    newState,
+    newState.players[newState.dealerIndex].id,
     "phase",
-    `New hand begins. Round ${gameState.round ? gameState.round + 1 : 1}`,
+    `New hand begins. Round ${newState.round}`,
     undefined
   )
 
@@ -614,73 +616,69 @@ export const awardPot = (
   return updatedState
 }
 
-// New functions for round and game loops
+// Helper function to wait for a specified time
+const wait = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms))
 
-// Helper function to wait with pause checking (can be enhanced to include pause logic if needed)
-const wait = (ms: number) =>
-  new Promise<void>((resolve) => setTimeout(resolve, ms))
-
-// roundLoop: Runs one round (hand) without resetting players or chip counts.
+// New roundLoop: plays one round, resetting round-specific data while preserving player data
 export const roundLoop = async (
   gameState: GameState,
   setGameState: (state: GameState) => void,
-  gamePhaseDelay: number
+  delay: number,
+  getPlayerDecision: (player: any, gameState: GameState) => Promise<any>
 ): Promise<GameState> => {
-  let currentState = gameState
-
-  // For rounds after the first, reset round-specific info (cards, bets, community)
-  if (gameState.round && gameState.round > 1) {
-    currentState = setupNextHand(currentState)
-    setGameState(currentState)
-    await wait(1000)
-  }
+  // Prepare new round: reset round-specific info while keeping persistent data (chips, etc.)
+  let currentState = setupNextHand(gameState)
 
   // Deal player cards
   currentState = dealPlayerCards(currentState)
   setGameState(currentState)
-  await wait(gamePhaseDelay)
+  await wait(delay)
 
   // Pre-flop betting round
   currentState = await processBettingRound(
     currentState,
     setGameState,
-    gamePhaseDelay / 2
+    delay / 2,
+    getPlayerDecision
   )
 
-  // Deal flop (3 cards)
+  // Deal flop
   currentState = dealFlop(currentState)
   setGameState(currentState)
-  await wait(gamePhaseDelay)
+  await wait(delay)
 
   // Flop betting round
   currentState = await processBettingRound(
     currentState,
     setGameState,
-    gamePhaseDelay / 2
+    delay / 2,
+    getPlayerDecision
   )
 
-  // Deal turn (1 card)
+  // Deal turn
   currentState = dealTurn(currentState)
   setGameState(currentState)
-  await wait(gamePhaseDelay)
+  await wait(delay)
 
   // Turn betting round
   currentState = await processBettingRound(
     currentState,
     setGameState,
-    gamePhaseDelay / 2
+    delay / 2,
+    getPlayerDecision
   )
 
-  // Deal river (1 card)
+  // Deal river
   currentState = dealRiver(currentState)
   setGameState(currentState)
-  await wait(gamePhaseDelay)
+  await wait(delay)
 
   // River betting round
   currentState = await processBettingRound(
     currentState,
     setGameState,
-    gamePhaseDelay / 2
+    delay / 2,
+    getPlayerDecision
   )
 
   // Showdown phase
@@ -690,57 +688,63 @@ export const roundLoop = async (
   }
   const stateWithEquity = calculateEquity(showdownState)
   setGameState(stateWithEquity)
-  await wait(500)
+  await wait(delay / 2)
 
-  // Determine winners
+  // Determine winners and award pot
   const { winners, handDescriptions } = determineWinners(stateWithEquity)
-  // Log hand descriptions if needed
-  console.log("Hand descriptions:", handDescriptions)
-
-  // Award pot and update state
   const finalState = {
     ...awardPot(stateWithEquity, winners),
     winningPlayers: winners.map((w) => w.id),
     handResults: handDescriptions,
   }
   setGameState(finalState)
-
-  // Wait to show results longer
-  await wait(gamePhaseDelay * 3)
+  await wait(delay * 3)
 
   return finalState
 }
 
-// gameLoop: Manages the overall game without resetting players or chip counts.
-// It repeatedly calls roundLoop until there is only one player with chips left.
+// New gameLoop: runs rounds continuously until only one player with chips remains or an external stop condition is met
 export const gameLoop = async (
-  initialState: GameState,
+  initialGameState: GameState,
   setGameState: (state: GameState) => void,
-  gamePhaseDelay: number,
-  updateStats: (state: GameState, winners: Player[]) => void
-) => {
-  let currentState = { ...initialState }
-  let round = 1
-
-  // Continue while more than one player has chips
-  while (currentState.players.filter((p) => p.chips > 0).length > 1) {
-    // Set current round (for logging purposes)
-    currentState.round = round
-    setGameState(currentState)
-
-    // Run one round
-    currentState = await roundLoop(currentState, setGameState, gamePhaseDelay)
-
-    // Update statistics
-    const { winners } = determineWinners(currentState)
-    updateStats(currentState, winners)
-
-    round++
+  delay: number,
+  getPlayerDecision: (player: any, gameState: GameState) => Promise<any>,
+  shouldStop: () => boolean
+): Promise<void> => {
+  let currentState = initialGameState
+  while (!shouldStop()) {
+    // Check game over: if only one player has chips remaining, end the loop
+    const playersWithChips = currentState.players.filter((p) => p.chips > 0)
+    if (playersWithChips.length <= 1) {
+      if (playersWithChips.length === 1) {
+        const winner = playersWithChips[0]
+        // Update final state to include winningPlayers and handResults for showing winner result card
+        const finalState = {
+          ...currentState,
+          winningPlayers: [winner.id],
+          handResults: {
+            [winner.id]: `Game over! ${winner.name} wins the tournament with ${winner.chips} chips!`,
+          },
+        }
+        // Optionally, add a log entry
+        const stateWithLog = addLogEntry(
+          finalState,
+          winner.id,
+          "win",
+          `Game over! ${winner.name} wins the tournament with ${winner.chips} chips!`,
+          winner.chips
+        )
+        setGameState(stateWithLog)
+      }
+      break
+    }
+    currentState = await roundLoop(
+      currentState,
+      setGameState,
+      delay,
+      getPlayerDecision
+    )
   }
-
-  // Game over condition
-  console.log("Game over")
-  return currentState
 }
 
 // To be implemented: hand evaluation, betting logic, round progression, etc.

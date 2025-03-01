@@ -13,6 +13,8 @@ import {
   determineWinners,
   awardPot,
   setupNextHand,
+  addLogEntry,
+  gameLoop,
 } from "./game/gameEngine"
 import { assignPersonalities, determineAction } from "./game/pokerAI"
 import { calculateEquity } from "./game/equityCalculator"
@@ -142,187 +144,36 @@ export default function Home() {
     isPausedRef.current = isPaused
   }, [isPaused])
 
-  // Refactor the game loop to better handle pausing
+  // Replace the existing useEffect for gameLoop with the following code:
+
   useEffect(() => {
     if (!isGameRunning) return
 
     let isMounted = true
 
-    const waitWithPauseCheck = async (ms: number) => {
-      // Wait for the specified time
-      await new Promise<void>((resolve) => {
-        setTimeout(resolve, ms)
-      })
+    // A helper to stop the loop if the component unmounts or game stops
+    const shouldStop = () => !isMounted || !isGameRunning
 
-      // Check for pause after the timer
-      while (isPausedRef.current && isMounted) {
-        // Wait in small increments while paused
-        await new Promise((r) => setTimeout(r, 100))
+    // Start the game loop using the new gameLoop function from gameEngine
+    ;(async () => {
+      // Use the current gameState if available, otherwise initialize one
+      const initialState = gameState || {
+        ...createInitialGameState(playerCount),
+        round: 1,
       }
-    }
-
-    const gameLoop = async () => {
-      if (!isMounted) return
-
-      // Instead of creating a fresh state for each round, we'll use the existing state
-      // or create a new one only for the first round
-      let currentGameState: GameState
-
-      if (roundRef.current === 1) {
-        // Only create a fresh state for the first round
-        currentGameState = {
-          ...createInitialGameState(playerCount),
-          round: roundRef.current,
-        }
-
-        // Assign AI personalities to players only at the start
-        assignPersonalities(currentGameState.players)
-      } else {
-        // For subsequent rounds, use the existing state from the previous round
-        // We use setupNextHand which properly resets just what's needed between hands
-        currentGameState = setupNextHand(gameState as GameState)
+      // If it's the first round, assign AI personalities
+      if (initialState.round === 1) {
+        assignPersonalities(initialState.players)
       }
-
-      // Check if game should end (only one player with chips)
-      const playersWithChips = currentGameState.players.filter(
-        (p) => p.chips > 0
-      )
-      if (playersWithChips.length <= 1) {
-        // Game is over - only one player has chips left
-        const winner = playersWithChips[0]
-        if (winner) {
-          // Add a game end log entry
-          const finalState = addLogEntry(
-            currentGameState,
-            winner.id,
-            "win",
-            `Game over! ${winner.name} wins the tournament with ${winner.chips} chips!`,
-            winner.chips
-          )
-          setGameState(finalState)
-        }
-        setIsGameRunning(false)
-        return
-      }
-
-      // Initialize with blinds (only if this is the first round, otherwise blinds are set in setupNextHand)
-      const initializedState =
-        roundRef.current === 1
-          ? initializeBlinds(currentGameState)
-          : currentGameState
-
-      if (!isMounted) return
-      setGameState(initializedState)
-      await waitWithPauseCheck(1000)
-
-      // Deal player cards
-      const dealingState = dealPlayerCards(initializedState)
-      if (!isMounted) return
-      setGameState(dealingState)
-      await waitWithPauseCheck(gamePhaseDelay)
-
-      // Pre-flop betting round
-      let currentState = await processBettingRound(
-        dealingState,
+      // Run the continuous game loop; it will handle rounds without resetting chip counts
+      await gameLoop(
+        initialState,
         setGameState,
-        gamePhaseDelay / 2,
-        getPlayerDecision
+        gamePhaseDelay,
+        getPlayerDecision,
+        shouldStop
       )
-      if (!isMounted) return
-
-      // Deal flop (3 cards)
-      const flopState = dealFlop(currentState)
-      if (!isMounted) return
-      setGameState(flopState)
-      await waitWithPauseCheck(gamePhaseDelay)
-
-      // Flop betting round
-      currentState = await processBettingRound(
-        flopState,
-        setGameState,
-        gamePhaseDelay / 2,
-        getPlayerDecision
-      )
-      if (!isMounted) return
-
-      // Deal turn (1 card)
-      const turnState = dealTurn(currentState)
-      if (!isMounted) return
-      setGameState(turnState)
-      await waitWithPauseCheck(gamePhaseDelay)
-
-      // Turn betting round
-      currentState = await processBettingRound(
-        turnState,
-        setGameState,
-        gamePhaseDelay / 2,
-        getPlayerDecision
-      )
-      if (!isMounted) return
-
-      // Deal river (1 card)
-      const riverState = dealRiver(currentState)
-      if (!isMounted) return
-      setGameState(riverState)
-      await waitWithPauseCheck(gamePhaseDelay)
-
-      // River betting round
-      currentState = await processBettingRound(
-        riverState,
-        setGameState,
-        gamePhaseDelay / 2,
-        getPlayerDecision
-      )
-      if (!isMounted) return
-
-      // Showdown phase
-      const showdownState = { ...currentState, currentPhase: "showdown" }
-
-      // Calculate final equity before determining winners
-      const stateWithEquity = calculateEquity(showdownState as GameState)
-      setGameState(stateWithEquity)
-      await waitWithPauseCheck(500) // Short delay to show final equity
-
-      // Determine winners with hand descriptions
-      const { winners, handDescriptions } = determineWinners(stateWithEquity)
-
-      // Make sure we're correctly handling the hand descriptions
-      console.log("Hand descriptions:", handDescriptions) // Add logging to debug
-
-      // Update state with winners and hand results
-      const finalState = {
-        ...awardPot(stateWithEquity, winners),
-        winningPlayers: winners.map((w) => w.id),
-        handResults: handDescriptions,
-      }
-
-      if (!isMounted) return
-      setGameState(finalState as GameState)
-      // Increase showdown delay to give more time to see results
-      await waitWithPauseCheck(gamePhaseDelay * 3) // Increased from 2x to 3x
-
-      // Update statistics
-      updateStats(finalState, winners)
-
-      // If still running, trigger the next round
-      if (isMounted && isGameRunning) {
-        roundRef.current += 1
-        // Set up the next hand for the next round
-        setGameState((prevState) => {
-          if (!prevState) return setupNextHand(finalState as GameState)
-          return setupNextHand(prevState)
-        })
-
-        // We no longer need to call setupNextHand here since we'll do it at the beginning of the next gameLoop iteration
-        setTimeout(() => {
-          if (isMounted && isGameRunning) {
-            gameLoop()
-          }
-        }, 0)
-      }
-    }
-
-    gameLoop()
+    })()
 
     return () => {
       isMounted = false
