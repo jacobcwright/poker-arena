@@ -380,15 +380,17 @@ export default function Home() {
         </div>
 
         {/* Poker Table */}
-        {gameState ? (
-          <PokerTable gameState={gameState} />
-        ) : (
-          <div className="aspect-[16/9] bg-green-800 rounded-[50%] relative border-8 border-brown-800 mb-8">
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
-              <p className="text-xl font-semibold mb-2">Loading game...</p>
+        <div className="py-20">
+          {gameState ? (
+            <PokerTable gameState={gameState} />
+          ) : (
+            <div className="aspect-[16/9] bg-green-800 rounded-[50%] relative border-8 border-brown-800 mb-8">
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 text-center">
+                <p className="text-xl font-semibold mb-2">Loading game...</p>
+              </div>
             </div>
-          </div>
-        )}
+          )}
+        </div>
 
         {/* Game Stats and Statistics */}
         <div className="grid grid-cols-2 gap-4 mb-8">
