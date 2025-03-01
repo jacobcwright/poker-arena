@@ -519,14 +519,6 @@ export default function Player({
       >
         {showAction && getActionDisplay()}
 
-        {/* Personality Pill - Shows personality type above player */}
-        <div className="absolute -top-8 left-1/2 transform -translate-x-1/2 px-2.5 py-0.5 rounded-full bg-gray-800/90 text-white text-xs font-medium border border-gray-700 flex items-center gap-1.5 backdrop-blur-sm">
-          <span>{getPersonalityIcon()}</span>
-          <span className="capitalize">
-            {getNicknameAndPersonality().personality}
-          </span>
-        </div>
-
         {/* Player cards */}
         <div className="relative flex justify-center mb-3 mt-0.5">
           {hand ? (
