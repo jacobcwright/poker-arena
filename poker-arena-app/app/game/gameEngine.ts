@@ -528,26 +528,79 @@ export const determineWinners = (
 
 // Reset for a new hand
 export const setupNextHand = (gameState: GameState): GameState => {
-  const newState = { ...gameState }
+  // Create a deep clone of the state to avoid accidental mutations
+  const newState = JSON.parse(JSON.stringify(gameState))
+
+  // Log player chips before setup
+  console.log(
+    "Player chips before setupNextHand:",
+    gameState.players.map((p: Player) => `${p.name}: $${p.chips}`).join(", ")
+  )
+
+  // Store current player chips to ensure they're preserved
+  const playerChips = newState.players.reduce(
+    (chips: Record<number, number>, player: Player) => {
+      chips[player.id] = player.chips
+      return chips
+    },
+    {} as Record<number, number>
+  )
 
   // Move dealer button
   newState.dealerIndex = (newState.dealerIndex + 1) % newState.players.length
 
-  // Reset player states
-  newState.players.forEach((player) => {
+  // Reset player states (except chips)
+  newState.players.forEach((player: Player) => {
+    // Explicitly preserve chip count from before
+    const currentChips = playerChips[player.id]
+
+    // Reset all player properties
     player.hand = null
     player.currentBet = 0
     player.isActive = true
     player.isAllIn = false
     player.isDealer = player.id === newState.dealerIndex
     player.isTurn = false
+
+    // Explicitly restore chips
+    player.chips = currentChips
   })
+
+  // Log player chips after setup
+  console.log(
+    "Player chips after setupNextHand:",
+    newState.players.map((p: Player) => `${p.name}: $${p.chips}`).join(", ")
+  )
+
+  // Log community cards before resetting
+  console.log(
+    "Community cards before reset:",
+    newState.communityCards.length > 0
+      ? newState.communityCards
+          .map((card: Card) => `${card.rank} of ${card.suit}`)
+          .join(", ")
+      : "No community cards"
+  )
 
   // Reset game state
   newState.deck = createNewDeck()
+
+  // Explicitly create a new empty array for community cards
+  // rather than just setting the existing array to empty
   newState.communityCards = []
+
+  // Double-check that community cards are reset
+  if (newState.communityCards.length > 0) {
+    console.warn("WARNING: Community cards were not properly reset!")
+    // Force reset as a fallback
+    newState.communityCards = []
+  }
+
   newState.pot = 0
   newState.currentPhase = "idle"
+
+  // Log community cards after resetting
+  console.log("Community cards after reset:", newState.communityCards.length)
 
   // Log new round
   const updatedState = addLogEntry(
@@ -568,6 +621,12 @@ export const awardPot = (
   winners: Player[]
 ): GameState => {
   const newState = { ...gameState }
+
+  // Log player chips before awarding pot
+  console.log(
+    "Player chips before awarding pot:",
+    newState.players.map((p: Player) => `${p.name}: $${p.chips}`).join(", ")
+  )
 
   if (winners.length === 0) return newState
 
@@ -595,6 +654,12 @@ export const awardPot = (
       )
     }
   })
+
+  // Log player chips after awarding pot
+  console.log(
+    "Player chips after awarding pot:",
+    newState.players.map((p: Player) => `${p.name}: $${p.chips}`).join(", ")
+  )
 
   // Reset the pot
   updatedState.pot = 0

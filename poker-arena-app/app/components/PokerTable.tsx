@@ -23,9 +23,9 @@ export default function PokerTable({ gameState }: PokerTableProps) {
   return (
     <div className="aspect-[16/9] bg-green-800 rounded-[50%] relative border-8 border-brown-800 mb-8">
       {/* Community Cards */}
-      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
+      <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-[60%]">
         <div className="flex flex-col items-center">
-          <div className="flex gap-2 mb-4">
+          <div className="flex gap-2 my-6">
             {communityCards.length > 0 ? (
               communityCards.map((card, index) => (
                 <Card key={index} card={card} />
@@ -87,10 +87,10 @@ export default function PokerTable({ gameState }: PokerTableProps) {
         )
       })}
 
-      {/* Improved Hand results overlay for showdown - moved outside the cards div and given a higher z-index */}
+      {/* Improved Hand results overlay for showdown - moved to bottom of table */}
       {showHandResults && (
-        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 transform -translate-y-1/3 z-50">
-          <div className="bg-black bg-opacity-90 p-4 rounded-lg text-white min-w-[350px] shadow-xl border-2 border-yellow-500">
+        <div className="absolute bottom-0 left-1/2 -translate-x-1/2 transform translate-y-[105%] z-50 w-full max-w-md">
+          <div className="bg-black bg-opacity-90 p-4 rounded-lg text-white shadow-xl border-2 border-yellow-500">
             <h3 className="text-center font-bold text-xl mb-3 text-yellow-400">
               Hand Results
             </h3>

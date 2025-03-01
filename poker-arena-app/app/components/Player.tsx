@@ -63,14 +63,14 @@ export default function Player({
 
   // Positioning classes based on position
   const positions = [
-    "bottom-8 left-1/2 -translate-x-1/2", // 0: Bottom center
-    "bottom-16 right-24", // 1: Bottom right
-    "right-8 top-1/2 -translate-y-1/2", // 2: Right center
-    "top-16 right-24", // 3: Top right
-    "top-8 left-1/2 -translate-x-1/2", // 4: Top center
-    "top-16 left-24", // 5: Top left
-    "left-8 top-1/2 -translate-y-1/2", // 6: Left center
-    "bottom-16 left-24", // 7: Bottom left
+    "bottom-4 left-1/2 -translate-x-1/2", // 0: Bottom center (moved further down)
+    "bottom-24 right-32", // 1: Bottom right (moved further out)
+    "right-12 top-1/2 -translate-y-1/2", // 2: Right center (moved further right)
+    "top-24 right-32", // 3: Top right (moved further up and right)
+    "top-4 left-1/2 -translate-x-1/2", // 4: Top center (moved much further up)
+    "top-24 left-32", // 5: Top left (moved further up and left)
+    "left-12 top-1/2 -translate-y-1/2", // 6: Left center (moved further left)
+    "bottom-24 left-32", // 7: Bottom left (moved further down and left)
   ]
 
   const positionClass = positions[position % positions.length]
