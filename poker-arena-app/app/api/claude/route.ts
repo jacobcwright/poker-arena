@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
 import Anthropic from "@anthropic-ai/sdk"
+import { Emotion } from "../../types"
+import OpenAI from "openai"
 
 // Define types for the request and response
 interface ClaudeRequestBody {
@@ -7,6 +9,13 @@ interface ClaudeRequestBody {
   model?: string
   temperature?: number
   max_tokens?: number
+}
+
+interface ClaudeResponseBody {
+  response: string
+  emotion?: Emotion
+  chainOfThought?: string
+  reasoning_summary?: string
 }
 
 // Replace this with your actual Claude API key
@@ -47,9 +56,6 @@ export async function POST(request: NextRequest) {
       messages: [{ role: "user", content: prompt }],
     })
 
-    console.log("Claude API response:", message)
-    console.log("Claude API content:", message.content)
-
     let responseText = ""
 
     // Parse the response content
@@ -62,11 +68,89 @@ export async function POST(request: NextRequest) {
       }
     }
 
-    return NextResponse.json({
-      model: message.model,
-      response: responseText,
-      done: true,
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
     })
+
+    const output = await openai.beta.chat.completions.parse({
+      model: "gpt-4o-mini",
+      max_tokens,
+      temperature,
+      messages: [
+        {
+          role: "user",
+          content: `Analyze the following text and extract the following information: 
+        - The emotion of the text
+        - The reasoning behind the emotion
+        - The final decision
+
+        Respond in JSON format as follows:
+        {
+          "emotion": "emotion",
+          "reasoning": "reasoning",
+          "reasoning_summary": "reasoning_summary",
+          "decision": "decision"
+        }
+
+        Here is the text to analyze:
+        ${responseText}
+        `,
+        },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "emotion_decision_schema",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              decision: {
+                type: "string",
+                description:
+                  "The decision made based on the emotion and reasoning.",
+              },
+              chainOfThought: {
+                type: "string",
+                description:
+                  "The reasoning behind the the decision. Do not summarize the reasoning, just provide the reasoning.",
+              },
+              reasoning_summary: {
+                type: "string",
+                description:
+                  "A summary of the reasoning for better comprehension.",
+              },
+              emotion: {
+                type: "string",
+                description: "The emotion displayed by the player.",
+              },
+            },
+            required: [
+              "emotion",
+              "chainOfThought",
+              "reasoning_summary",
+              "decision",
+            ],
+            additionalProperties: false,
+          },
+        },
+      },
+    })
+
+    const jsonResponse = JSON.parse(output.choices[0].message.content || "")
+
+    console.log("========== JSON response:", jsonResponse)
+
+    const response: ClaudeResponseBody = {
+      response: jsonResponse.decision,
+      emotion: jsonResponse.emotion,
+      chainOfThought: "",
+      reasoning_summary: "",
+    }
+
+    console.log("========== Claude API response:", response)
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Error calling Claude API:", error)
     return NextResponse.json(

@@ -110,12 +110,58 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
     return "text-red-400"
   }
 
+  // Get emoji based on emotion
+  const getEmotionEmoji = (emotion?: string): string => {
+    switch (emotion) {
+      case "neutral":
+        return "😐"
+      case "happy":
+        return "😊"
+      case "excited":
+        return "😃"
+      case "nervous":
+        return "😰"
+      case "thoughtful":
+        return "🤔"
+      case "suspicious":
+        return "🤨"
+      case "confident":
+        return "😎"
+      case "disappointed":
+        return "😞"
+      case "frustrated":
+        return "😤"
+      case "surprised":
+        return "😲"
+      case "poker-face":
+        return "😑"
+      case "bluffing":
+        return "😏"
+      case "calculating":
+        return "🧠"
+      case "intimidating":
+        return "😠"
+      case "worried":
+        return "😟"
+      default:
+        return ""
+    }
+  }
+
   // Toggle expansion of a specific entry
   const toggleExpand = (index: number) => {
     setExpandedEntries((prev) => ({
       ...prev,
       [index]: !prev[index],
     }))
+  }
+
+  // Check if entry has reasoning content (either chainOfThought or reasoningSummary)
+  const hasReasoningContent = (entry: ActivityLogEntry): boolean => {
+    return (
+      !!(entry.chainOfThought && entry.chainOfThought.trim()) ||
+      !!(entry.reasoningSummary && entry.reasoningSummary.trim())
+    )
   }
 
   return (
@@ -180,8 +226,13 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
                     className="activity-log-entry bg-gray-800 rounded p-2 text-md mb-2"
                   >
                     <div className="flex justify-between items-start">
-                      <span className="font-medium text-white">
+                      <span className="font-medium text-white flex items-center">
                         {entry.playerName}
+                        {entry.emotion && (
+                          <span className="ml-2 text-lg" title={entry.emotion}>
+                            {getEmotionEmoji(entry.emotion)}
+                          </span>
+                        )}
                       </span>
                       <span className="text-sm text-gray-400">
                         {formatTime(entry.timestamp)}
@@ -190,7 +241,8 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
                     <div className={`${getActionColor(entry.action)}`}>
                       {entry.description}
                     </div>
-                    {entry.chainOfThought && (
+
+                    {hasReasoningContent(entry) && (
                       <div className="mt-1">
                         <button
                           onClick={() => toggleExpand(index)}
@@ -221,17 +273,35 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
                               animate={{ height: "auto", opacity: 1 }}
                               exit={{ height: 0, opacity: 0 }}
                               transition={{ duration: 0.3 }}
-                              className="p-2 bg-gray-700 rounded text-sm text-gray-300 italic overflow-hidden"
+                              className="p-2 bg-gray-700 rounded text-sm text-gray-300 overflow-hidden"
                             >
-                              <div className="font-semibold mb-1">
-                                Thought Process:
-                              </div>
-                              {entry.chainOfThought}
+                              {entry.reasoningSummary && (
+                                <div className="mb-3">
+                                  <div className="font-semibold text-yellow-300 mb-1">
+                                    Summary:
+                                  </div>
+                                  <div className="text-gray-200 font-medium mb-2">
+                                    {entry.reasoningSummary}
+                                  </div>
+                                </div>
+                              )}
+
+                              {entry.chainOfThought && (
+                                <div>
+                                  <div className="font-semibold mb-1">
+                                    Thought Process:
+                                  </div>
+                                  <div className="text-gray-300 italic">
+                                    {entry.chainOfThought}
+                                  </div>
+                                </div>
+                              )}
                             </motion.div>
                           )}
                         </AnimatePresence>
                       </div>
                     )}
+
                     <div className="flex justify-between items-center mt-1">
                       <span className="text-sm text-gray-500">
                         Phase: {entry.phase}

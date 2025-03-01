@@ -1,4 +1,7 @@
 import { NextRequest, NextResponse } from "next/server"
+import { Emotion } from "../../types"
+import Anthropic from "@anthropic-ai/sdk"
+import OpenAI from "openai"
 
 // Define types for the request and response
 interface OllamaRequestBody {
@@ -6,25 +9,16 @@ interface OllamaRequestBody {
   model?: string
   temperature?: number
   max_tokens?: number
-  stream?: boolean
 }
 
-interface OllamaResponseData {
-  model: string
-  created_at: string
+interface OllamaResponseBody {
   response: string
-  done: boolean
-  context?: number[]
-  total_duration?: number
-  load_duration?: number
-  prompt_eval_duration?: number
-  eval_duration?: number
-  eval_count?: number
+  emotion?: Emotion
+  chainOfThought?: string
+  reasoning_summary?: string
 }
 
-// The URL of the Ollama DeepSeek model
-const OLLAMA_URL =
-  "https://p01--deepseek-ollama--r7srf6mg442h.code.run/api/generate"
+const CLAUDE_API_KEY = process.env.CLAUDE_API_KEY || ""
 
 export async function POST(request: NextRequest) {
   try {
@@ -32,48 +26,144 @@ export async function POST(request: NextRequest) {
     const body = (await request.json()) as OllamaRequestBody
     const {
       prompt,
-      model = "deepseek-r1:70b",
+      model = "deepseek",
       temperature = 0.7,
-      max_tokens = 1000,
+      max_tokens = 2000,
     } = body
 
     if (!prompt) {
       return NextResponse.json({ error: "Prompt is required" }, { status: 400 })
     }
 
-    // Prepare the request to Ollama
-    const ollamaRequest: OllamaRequestBody = {
-      model,
-      prompt,
-      temperature,
-      max_tokens,
-      stream: false, // Set to true if you want to stream the response
+    // Modify the prompt to include a format for emotion
+    const enhancedPrompt = `${prompt}
+
+After your analysis, state your final decision clearly and concisely.
+Also, tell me what emotion you're displaying to other players by adding "EMOTION: [emotion]" at the end of your response.
+Choose from: neutral, happy, excited, nervous, thoughtful, suspicious, confident, disappointed, frustrated, surprised, poker-face, bluffing, calculating, intimidating, worried.
+
+For example:
+I will call.
+
+EMOTION: poker-face
+`
+
+    // Set up parameters for Ollama API
+    const ollamaParams = {
+      model: model,
+      prompt: enhancedPrompt,
+      stream: false,
+      options: {
+        temperature: temperature,
+        num_predict: max_tokens,
+      },
     }
 
-    console.log("Calling Ollama API with:", JSON.stringify(ollamaRequest))
+    console.log("Calling Ollama API with:", ollamaParams)
 
     // Call the Ollama API
-    const ollamaResponse = await fetch(OLLAMA_URL, {
+    // Replace with your actual Ollama endpoint
+    const ollamaEndpoint =
+      "https://p01--deepseek-ollama--r7srf6mg442h.code.run/api/generate"
+    const ollamaResponse = await fetch(ollamaEndpoint, {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
       },
-      body: JSON.stringify(ollamaRequest),
+      body: JSON.stringify(ollamaParams),
     })
 
     if (!ollamaResponse.ok) {
-      const errorData = await ollamaResponse.json()
-      throw new Error(
-        `Ollama API error: ${
-          (errorData as any).error || ollamaResponse.statusText
-        }`
-      )
+      throw new Error(`Ollama API returned ${ollamaResponse.status}`)
     }
 
-    // Parse and return the response
-    const data = (await ollamaResponse.json()) as OllamaResponseData
-    console.log("Ollama API response:", data.response)
-    return NextResponse.json(data)
+    const data = await ollamaResponse.json()
+    console.log("Ollama API response:", data)
+
+    let responseText = data.response || ""
+
+    const openai = new OpenAI({
+      apiKey: process.env.OPENAI_API_KEY,
+    })
+
+    const output = await openai.beta.chat.completions.parse({
+      model: "gpt-4o-mini",
+      max_tokens,
+      temperature,
+      messages: [
+        {
+          role: "user",
+          content: `Analyze the following text and extract the following information: 
+        - The emotion of the text
+        - The reasoning behind the emotion
+        - The final decision
+
+        Respond in JSON format as follows:
+        {
+          "emotion": "emotion",
+          "reasoning": "reasoning",
+          "reasoning_summary": "reasoning_summary",
+          "decision": "decision"
+        }
+
+        Here is the text to analyze:
+        ${responseText}`,
+        },
+      ],
+      response_format: {
+        type: "json_schema",
+        json_schema: {
+          name: "emotion_decision_schema",
+          strict: true,
+          schema: {
+            type: "object",
+            properties: {
+              decision: {
+                type: "string",
+                description:
+                  "The decision made based on the emotion and reasoning.",
+              },
+              chainOfThought: {
+                type: "string",
+                description:
+                  "The reasoning behind the the decision. Do not summarize the reasoning, just provide the reasoning.",
+              },
+              reasoning_summary: {
+                type: "string",
+                description:
+                  "A summary of the reasoning for better comprehension.",
+              },
+              emotion: {
+                type: "string",
+                description: "The emotion displayed by the player.",
+              },
+            },
+            required: [
+              "emotion",
+              "chainOfThought",
+              "reasoning_summary",
+              "decision",
+            ],
+            additionalProperties: false,
+          },
+        },
+      },
+    })
+
+    const jsonResponse = JSON.parse(output.choices[0].message.content || "")
+
+    console.log("========== JSON response:", jsonResponse)
+
+    const response: OllamaResponseBody = {
+      response: jsonResponse.decision,
+      emotion: jsonResponse.emotion,
+      chainOfThought: jsonResponse.chainOfThought,
+      reasoning_summary: jsonResponse.reasoning_summary,
+    }
+
+    console.log("========== Ollama API response:", response)
+
+    return NextResponse.json(response)
   } catch (error) {
     console.error("Error calling Ollama API:", error)
     return NextResponse.json(

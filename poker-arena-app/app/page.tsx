@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
-import { GameState, GameStats, Player, PlayerAction } from "./types"
+import { GameState, GameStats, Player, PlayerAction, Emotion } from "./types"
 import PokerTable from "./components/PokerTable"
 import {
   createInitialGameState,
@@ -20,6 +20,15 @@ import { assignPersonalities, determineAction } from "./game/pokerAI"
 import { calculateEquity } from "./game/equityCalculator"
 import StatsPanel from "./components/StatsPanel"
 import ActivityLog from "./components/ActivityLog"
+
+// Define interface for AI decision to ensure type consistency
+interface AIDecision {
+  action: PlayerAction
+  betAmount?: number
+  chainOfThought?: string
+  emotion?: Emotion
+  reasoningSummary?: string
+}
 
 export default function Home() {
   const [playerCount, setPlayerCount] = useState(4)
@@ -112,19 +121,56 @@ export default function Home() {
   }
 
   // Add this function to handle regular AI decisions
-  const getRegularAIDecision = (player: Player, gameState: GameState) => {
+  const getRegularAIDecision = (
+    player: Player,
+    gameState: GameState
+  ): AIDecision => {
     // Use the existing AI logic from your game engine
-    return determineAction(gameState, player.id)
+    const decision = determineAction(gameState, player.id)
+
+    // Add an appropriate emotion based on the decision
+    let emotion: Emotion = "neutral"
+    switch (decision.action) {
+      case "fold":
+        emotion = "disappointed"
+        break
+      case "check":
+        emotion = "neutral"
+        break
+      case "call":
+        emotion = "thoughtful"
+        break
+      case "bet":
+      case "raise":
+        emotion = Math.random() > 0.5 ? "confident" : "bluffing"
+        break
+      case "allIn":
+        emotion = Math.random() > 0.7 ? "excited" : "nervous"
+        break
+    }
+
+    // Add a simple reasoning summary based on the action
+    let reasoningSummary = ""
+
+    return {
+      ...decision,
+      emotion,
+      reasoningSummary,
+      chainOfThought: reasoningSummary, // Use the summary as chainOfThought too for consistency
+    }
   }
 
   /**
    * Get the decision from the LLM.
    */
-  const getPlayerDecision = async (player: Player, gameState: GameState) => {
+  const getPlayerDecision = async (
+    player: Player,
+    gameState: GameState
+  ): Promise<AIDecision> => {
     const playerType = playerTypes[player.id]
 
     // Regular AI decision
-    if (playerType === "Monte-Carlo" || !modelConfigs[playerType]) {
+    if (playerType === "AI" || !modelConfigs[playerType]) {
       return getRegularAIDecision(player, gameState)
     }
 
@@ -157,7 +203,22 @@ export default function Home() {
       }
 
       const data = await response.json()
-      return parseDecisionFromLlama(data.response)
+
+      // Handle the structured response from API routes
+      if (data.response) {
+        const decision = parseDecisionFromLlama(data.response)
+
+        // Return decision with additional fields from the API
+        return {
+          ...decision,
+          emotion: data.emotion || decision.emotion || "neutral",
+          chainOfThought: data.reasoning || decision.chainOfThought || "",
+          reasoningSummary: data.reasoning_summary || "",
+        }
+      } else {
+        // Fallback to parsing the raw response
+        return parseDecisionFromLlama(data.text || "")
+      }
     } catch (error) {
       console.error(`Error getting ${playerType} decision:`, error)
       // Fallback to regular AI if the model API fails
@@ -167,7 +228,7 @@ export default function Home() {
 
   // Helper functions for Llama integration
   const generatePokerPrompt = (player: Player, gameState: GameState) => {
-    return `You are playing poker. 
+    const prompt = `You are playing poker. 
     Your cards: ${
       player.hand?.map((c) => `${c.rank}${c.suit}`).join(", ") || ""
     }
@@ -185,27 +246,47 @@ export default function Home() {
         .join(", ") || 0
     }
 
+    Opponent's Emotions: ${
+      gameState.players
+        .filter((p) => p.id !== player.id)
+        .map((p) => p.emotion)
+        .join(", ") || "None"
+    }
+
     Current bet to call: $${
-      (gameState.players.find((p) => p.id === player.id)?.currentBet || 0) -
-      (player.currentBet || 0)
+      Math.max(...gameState.players.map((p) => p.currentBet)) -
+      player.currentBet
     }
 
     Stage: ${gameState.currentPhase}
 
-    Previous actions: ${JSON.stringify(gameState.playerActions)}
+    Previous actions: ${
+      gameState.activityLog
+        ? gameState.activityLog
+            .slice(-5)
+            .map(
+              (entry) =>
+                `${entry.playerName}: ${entry.action} ${
+                  entry.amount ? "$" + entry.amount : ""
+                }`
+            )
+            .join(", ")
+        : "None"
+    }
 
-    Your output should only be the action you would take.
-    
     What action would you take? Choose one:
     fold
     check
     call
     bet (with amount)
+    raise (with amount)
     allin
     `
+    console.log("prompt", prompt)
+    return prompt
   }
 
-  const parseDecisionFromLlama = (response: string) => {
+  const parseDecisionFromLlama = (response: string): AIDecision => {
     // Check if there's a thinking section, and only parse after it
     const lowerResponse = response.toLowerCase()
     const thinkIndex = lowerResponse.indexOf("</think>")
@@ -219,26 +300,89 @@ export default function Home() {
         ? lowerResponse.substring(thinkIndex + 9) // Length of </think> is 9
         : lowerResponse
 
+    // Extract emotion from the response
+    let emotion: Emotion = "neutral"
+    const emotionMatch = response.match(/EMOTION:\s*(\w+(-\w+)?)/i)
+    if (emotionMatch && emotionMatch[1]) {
+      const extractedEmotion = emotionMatch[1].toLowerCase() as Emotion
+      const validEmotions: Emotion[] = [
+        "neutral",
+        "happy",
+        "excited",
+        "nervous",
+        "thoughtful",
+        "suspicious",
+        "confident",
+        "disappointed",
+        "frustrated",
+        "surprised",
+        "poker-face",
+        "bluffing",
+        "calculating",
+        "intimidating",
+        "worried",
+      ]
+
+      if (validEmotions.includes(extractedEmotion)) {
+        emotion = extractedEmotion
+      }
+    }
+
     if (decisionText.includes("fold"))
-      return { action: "fold" as PlayerAction, chainOfThought }
+      return {
+        action: "fold" as PlayerAction,
+        chainOfThought,
+        emotion,
+        reasoningSummary: "Folding due to a weak hand.",
+      }
     if (decisionText.includes("check"))
-      return { action: "check" as PlayerAction, chainOfThought }
+      return {
+        action: "check" as PlayerAction,
+        chainOfThought,
+        emotion,
+        reasoningSummary: "Checking to see the next card.",
+      }
     if (decisionText.includes("call"))
-      return { action: "call" as PlayerAction, chainOfThought }
+      return {
+        action: "call" as PlayerAction,
+        chainOfThought,
+        emotion,
+        reasoningSummary: "Calling to stay in the hand.",
+      }
 
     // Try to extract raise amount
     if (decisionText.includes("raise") || decisionText.includes("bet")) {
       const match = decisionText.match(/(raise|bet).*?(\d+)/)
       const betAmount = match ? parseInt(match[2]) : 20 // Default raise
-      return { action: "raise" as PlayerAction, betAmount, chainOfThought }
+      return {
+        action: "raise" as PlayerAction,
+        betAmount,
+        chainOfThought,
+        emotion,
+        reasoningSummary: `Raising ${betAmount} to build the pot.`,
+      }
     }
 
-    if (decisionText.includes("allin")) {
-      return { action: "allIn" as PlayerAction, chainOfThought }
+    if (
+      decisionText.includes("allin") ||
+      decisionText.includes("all in") ||
+      decisionText.includes("all-in")
+    ) {
+      return {
+        action: "allIn" as PlayerAction,
+        chainOfThought,
+        emotion,
+        reasoningSummary: "Going all-in for maximum value.",
+      }
     }
 
     // Default to call if parsing fails
-    return { action: "call" as PlayerAction, chainOfThought }
+    return {
+      action: "call" as PlayerAction,
+      chainOfThought,
+      emotion,
+      reasoningSummary: "Calling to see what happens next.",
+    }
   }
 
   // Update the ref when the state changes
@@ -259,7 +403,7 @@ export default function Home() {
     const wrappedGetPlayerDecision = async (
       player: Player,
       gameState: GameState
-    ) => {
+    ): Promise<AIDecision> => {
       // Save the winning amount when it's determined
       if (
         gameState.currentPhase === "showdown" &&
@@ -272,7 +416,17 @@ export default function Home() {
         setLastWinAmount(winAmount)
       }
 
-      return getPlayerDecision(player, gameState)
+      // Get the decision from the appropriate AI model
+      const decision = await getPlayerDecision(player, gameState)
+
+      // Ensure that all fields are properly passed through
+      return {
+        action: decision.action,
+        betAmount: decision.betAmount,
+        chainOfThought: decision.chainOfThought,
+        emotion: decision.emotion,
+        reasoningSummary: decision.reasoningSummary,
+      }
     }
 
     // Start the game loop using the new gameLoop function from gameEngine
