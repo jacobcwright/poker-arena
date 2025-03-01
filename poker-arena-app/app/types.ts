@@ -54,6 +54,17 @@ export interface GameState {
   minBet: number
   isRunning: boolean
   round?: number
+  winningPlayers?: number[]
+  handResults?: Record<number, string>
+  playerActions?: Record<number, { type: PlayerAction; amount?: number }>
+  stats?: GameStats
 }
 
 export type PlayerAction = "fold" | "check" | "call" | "bet" | "raise" | "allIn"
+
+export interface GameStats {
+  handsPlayed: number
+  biggestPot: number
+  biggestWin: Record<number, number>
+  handWins: Record<number, number>
+}

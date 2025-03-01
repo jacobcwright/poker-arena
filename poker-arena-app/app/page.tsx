@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
-import { GameState } from "./types"
+import { GameState, GameStats, Player } from "./types"
 import PokerTable from "./components/PokerTable"
 import {
   createInitialGameState,
@@ -15,6 +15,7 @@ import {
   setupNextHand,
 } from "./game/gameEngine"
 import { assignPersonalities } from "./game/pokerAI"
+import StatsPanel from "./components/StatsPanel"
 
 export default function Home() {
   const [playerCount, setPlayerCount] = useState(4)
@@ -22,17 +23,41 @@ export default function Home() {
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [gamePhaseDelay, setGamePhaseDelay] = useState(2000) // milliseconds
   const roundRef = useRef(0)
+  const [gameStats, setGameStats] = useState<GameStats>(createInitialStats())
+  const [isPaused, setIsPaused] = useState(false)
+  const pauseResumeRef = useRef<{ resolve: (() => void) | null }>({
+    resolve: null,
+  })
+  const isPausedRef = useRef(false)
 
   // Initialize game state when player count changes
   useEffect(() => {
     setGameState(createInitialGameState(playerCount))
   }, [playerCount])
 
-  // Game loop
+  // Update the ref when the state changes
   useEffect(() => {
-    if (!isGameRunning || !gameState) return
+    isPausedRef.current = isPaused
+  }, [isPaused])
+
+  // Refactor the game loop to better handle pausing
+  useEffect(() => {
+    if (!isGameRunning) return
 
     let isMounted = true
+
+    const waitWithPauseCheck = async (ms: number) => {
+      // Wait for the specified time
+      await new Promise<void>((resolve) => {
+        setTimeout(resolve, ms)
+      })
+
+      // Check for pause after the timer
+      while (isPausedRef.current && isMounted) {
+        // Wait in small increments while paused
+        await new Promise((r) => setTimeout(r, 100))
+      }
+    }
 
     const gameLoop = async () => {
       if (!isMounted) return
@@ -46,107 +71,114 @@ export default function Home() {
       // Assign AI personalities to players
       assignPersonalities(freshState.players)
 
-      if (isMounted) {
-        // Initialize with blinds
-        const initializedState = initializeBlinds(freshState)
-        setGameState(initializedState)
-        await new Promise((resolve) => setTimeout(resolve, 1000))
+      // Initialize with blinds
+      const initializedState = initializeBlinds(freshState)
+      if (!isMounted) return
+      setGameState(initializedState)
+      await waitWithPauseCheck(1000)
 
-        // Deal player cards
-        const dealingState = dealPlayerCards(initializedState)
-        setGameState(dealingState)
-        await new Promise((resolve) => setTimeout(resolve, gamePhaseDelay))
+      // Deal player cards
+      const dealingState = dealPlayerCards(initializedState)
+      if (!isMounted) return
+      setGameState(dealingState)
+      await waitWithPauseCheck(gamePhaseDelay)
 
-        if (!isMounted) return
+      // Pre-flop betting round
+      let currentState = await processBettingRound(
+        dealingState,
+        setGameState,
+        gamePhaseDelay / 2
+      )
+      if (!isMounted) return
 
-        // Pre-flop betting round
-        let currentState = await processBettingRound(
-          dealingState,
-          setGameState,
-          gamePhaseDelay / 2
-        )
+      // Deal flop (3 cards)
+      const flopState = dealFlop(currentState)
+      if (!isMounted) return
+      setGameState(flopState)
+      await waitWithPauseCheck(gamePhaseDelay)
 
-        if (!isMounted) return
+      // Flop betting round
+      currentState = await processBettingRound(
+        flopState,
+        setGameState,
+        gamePhaseDelay / 2
+      )
+      if (!isMounted) return
 
-        // Deal flop (3 cards)
-        const flopState = dealFlop(currentState)
-        setGameState(flopState)
-        await new Promise((resolve) => setTimeout(resolve, gamePhaseDelay))
+      // Deal turn (1 card)
+      const turnState = dealTurn(currentState)
+      if (!isMounted) return
+      setGameState(turnState)
+      await waitWithPauseCheck(gamePhaseDelay)
 
-        if (!isMounted) return
+      // Turn betting round
+      currentState = await processBettingRound(
+        turnState,
+        setGameState,
+        gamePhaseDelay / 2
+      )
+      if (!isMounted) return
 
-        // Flop betting round
-        currentState = await processBettingRound(
-          flopState,
-          setGameState,
-          gamePhaseDelay / 2
-        )
+      // Deal river (1 card)
+      const riverState = dealRiver(currentState)
+      if (!isMounted) return
+      setGameState(riverState)
+      await waitWithPauseCheck(gamePhaseDelay)
 
-        if (!isMounted) return
+      // River betting round
+      currentState = await processBettingRound(
+        riverState,
+        setGameState,
+        gamePhaseDelay / 2
+      )
+      if (!isMounted) return
 
-        // Deal turn (1 card)
-        const turnState = dealTurn(currentState)
-        setGameState(turnState)
-        await new Promise((resolve) => setTimeout(resolve, gamePhaseDelay))
+      // Showdown phase
+      const showdownState = { ...currentState, currentPhase: "showdown" }
 
-        if (!isMounted) return
+      // Determine winners with hand descriptions
+      const { winners, handDescriptions } = determineWinners(
+        showdownState as GameState
+      )
 
-        // Turn betting round
-        currentState = await processBettingRound(
-          turnState,
-          setGameState,
-          gamePhaseDelay / 2
-        )
+      // Make sure we're correctly handling the hand descriptions
+      console.log("Hand descriptions:", handDescriptions) // Add logging to debug
 
-        if (!isMounted) return
+      // Update state with winners and hand results
+      const finalState = {
+        ...awardPot(showdownState as GameState, winners),
+        winningPlayers: winners.map((w) => w.id),
+        handResults: handDescriptions,
+      }
 
-        // Deal river (1 card)
-        const riverState = dealRiver(currentState)
-        setGameState(riverState)
-        await new Promise((resolve) => setTimeout(resolve, gamePhaseDelay))
+      if (!isMounted) return
+      setGameState(finalState as GameState)
+      // Increase showdown delay to give more time to see results
+      await waitWithPauseCheck(gamePhaseDelay * 3) // Increased from 2x to 3x
 
-        if (!isMounted) return
+      // Update statistics
+      updateStats(finalState, winners)
 
-        // River betting round
-        currentState = await processBettingRound(
-          riverState,
-          setGameState,
-          gamePhaseDelay / 2
-        )
+      // If still running, trigger the next round
+      if (isMounted && isGameRunning) {
+        roundRef.current += 1
+        // Set up the next hand for the next round
+        setGameState((prevState) => {
+          if (!prevState) return setupNextHand(finalState as GameState)
+          return setupNextHand(prevState)
+        })
 
-        if (!isMounted) return
-
-        // Showdown phase
-        const showdownState = { ...currentState, currentPhase: "showdown" }
-
-        // Determine winners
-        const { winners, handDescriptions } = determineWinners(
-          showdownState as GameState
-        )
-
-        // Update state with winners
-        const finalState = {
-          ...awardPot(showdownState as GameState, winners),
-          winningPlayers: winners.map((w) => w.id),
-          handResults: handDescriptions,
-        }
-
-        setGameState(finalState as GameState)
-        await new Promise((resolve) => setTimeout(resolve, gamePhaseDelay * 2))
-
-        // If still running, trigger the next round
-        if (isMounted && isGameRunning) {
-          roundRef.current += 1
-          // Set up the next hand
-          setGameState(setupNextHand(finalState as GameState))
-          gameLoop()
-        }
+        // Use setTimeout to break the synchronous execution chain
+        setTimeout(() => {
+          if (isMounted && isGameRunning) {
+            gameLoop()
+          }
+        }, 0)
       }
     }
 
     gameLoop()
 
-    // Cleanup function to handle unmounting
     return () => {
       isMounted = false
     }
@@ -165,6 +197,44 @@ export default function Home() {
     } else {
       setIsGameRunning(false)
     }
+  }
+
+  // Toggle pause state
+  const togglePause = () => {
+    setIsPaused((prev) => !prev)
+  }
+
+  // Update statistics when a round ends
+  const updateStats = (state: GameState, winners: Player[]) => {
+    setGameStats((prevStats: GameStats) => {
+      const newStats = { ...prevStats }
+
+      // Increment hands played
+      newStats.handsPlayed += 1
+
+      // Update biggest pot if current pot is larger
+      if (state.pot > newStats.biggestPot) {
+        newStats.biggestPot = state.pot
+      }
+
+      // Track winners
+      const winAmount = Math.floor(state.pot / winners.length)
+
+      winners.forEach((winner) => {
+        // Update hand wins counter
+        newStats.handWins[winner.id] = (newStats.handWins[winner.id] || 0) + 1
+
+        // Update biggest win amount for this player
+        if (
+          !newStats.biggestWin[winner.id] ||
+          winAmount > newStats.biggestWin[winner.id]
+        ) {
+          newStats.biggestWin[winner.id] = winAmount
+        }
+      })
+
+      return newStats
+    })
   }
 
   return (
@@ -222,6 +292,22 @@ export default function Home() {
             >
               {isGameRunning ? "Stop Game" : "Start Game"}
             </button>
+
+            {isGameRunning && (
+              <button
+                onClick={togglePause}
+                disabled={!isGameRunning}
+                className={`px-6 py-2 rounded-full font-semibold ${
+                  !isGameRunning
+                    ? "bg-gray-600 cursor-not-allowed"
+                    : isPaused
+                    ? "bg-blue-600 hover:bg-blue-700"
+                    : "bg-yellow-600 hover:bg-yellow-700"
+                }`}
+              >
+                {isPaused ? "Resume Game" : "Pause Game"}
+              </button>
+            )}
           </div>
         </div>
 
@@ -236,7 +322,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Game Stats */}
+        {/* Game Stats and Statistics */}
         <div className="grid grid-cols-2 gap-4 mb-8">
           <div className="bg-gray-800 rounded-lg p-6">
             <h2 className="text-xl font-semibold mb-4">Current Round</h2>
@@ -251,21 +337,41 @@ export default function Home() {
                 <p className="text-gray-400">Round: {roundRef.current}</p>
               </>
             )}
-          </div>
-          <div className="bg-gray-800 rounded-lg p-6">
-            <h2 className="text-xl font-semibold mb-4">Player Stats</h2>
-            <div className="text-gray-400">
-              {gameState?.players.map((player) => (
-                <div key={player.id} className="mb-1">
-                  {player.name}: ${player.chips}
-                  {player.isDealer && " (Dealer)"}
-                  {player.isTurn && " (Active)"}
-                </div>
-              ))}
+            <div className="mt-4">
+              <h3 className="font-semibold mb-2">Player Chips</h3>
+              <div className="text-gray-400">
+                {gameState?.players.map((player) => (
+                  <div key={player.id} className="mb-1">
+                    {player.name}: ${player.chips}
+                    {player.isDealer && " (Dealer)"}
+                    {player.isTurn && " (Active)"}
+                  </div>
+                ))}
+              </div>
             </div>
           </div>
+
+          {/* Statistics Panel */}
+          {gameState && (
+            <StatsPanel
+              stats={gameStats}
+              playerNames={Object.fromEntries(
+                gameState.players.map((p) => [p.id, p.name])
+              )}
+            />
+          )}
         </div>
       </main>
     </div>
   )
+}
+
+// Create an initial stats object
+const createInitialStats = (): GameStats => {
+  return {
+    handsPlayed: 0,
+    biggestPot: 0,
+    biggestWin: {},
+    handWins: {},
+  }
 }

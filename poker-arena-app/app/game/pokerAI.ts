@@ -1,5 +1,4 @@
 import { Card, GameState, Player, PlayerAction } from "../types"
-import { evaluateHand } from "./handEvaluator"
 
 // Personality traits for Claude NPCs to create varied playing styles
 interface AIPersonality {

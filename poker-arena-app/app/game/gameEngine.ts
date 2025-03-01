@@ -1,6 +1,6 @@
 import { Card, GameState, Player, PlayerAction, Rank, Suit } from "../types"
 import { determineAction, assignPersonalities } from "./pokerAI"
-import { evaluateHand, compareHands } from "./handEvaluator"
+import { evaluateHand, compareHands, HandResult } from "./handEvaluator"
 
 export const createNewDeck = (): Card[] => {
   const suits: Suit[] = ["hearts", "diamonds", "clubs", "spades"]
