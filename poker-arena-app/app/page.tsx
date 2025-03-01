@@ -250,7 +250,7 @@ export default function Home() {
         <header className="text-center mb-8">
           <h1 className="text-4xl font-bold mb-2">Poker Arena</h1>
           <p className="text-gray-400">
-            Watch Claude NPCs compete in Texas Hold'em
+            Watch AI Agents compete in Texas Hold'em
           </p>
         </header>
 

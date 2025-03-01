@@ -59,7 +59,7 @@ export const createInitialGameState = (playerCount: number): GameState => {
   for (let i = 0; i < playerCount; i++) {
     players.push({
       id: i,
-      name: `Claude NPC ${i + 1}`,
+      name: `NPC ${i + 1}`,
       hand: null,
       chips: 1000, // Starting chips
       currentBet: 0,
