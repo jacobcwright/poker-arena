@@ -468,10 +468,23 @@ export const processBettingRound = async (
   // Track the player who made the last raise
   let lastRaiser = -1
 
+  // Check if there are any active players who can still act
+  const canActPlayerCount = currentState.players.filter(
+    (p) => p.isActive && !p.isAllIn && p.chips > 0
+  ).length
+
+  // If no players can act, end the betting round immediately
+  if (canActPlayerCount === 0) {
+    return currentState
+  }
+
   // Continue until all active players have acted and all bets are matched
   // or only one player remains active
   while (true) {
     const activePlayer = currentState.players[currentState.activePlayerIndex]
+
+    // Check for the case where we've gone full circle without finding an active player
+    const initialIndex = currentState.activePlayerIndex
 
     // Skip players who have folded, are all-in, or have no chips
     if (
@@ -480,7 +493,14 @@ export const processBettingRound = async (
       activePlayer.chips <= 0
     ) {
       // Move to next player
-      currentState = nextPlayer(currentState)
+      const nextState = nextPlayer(currentState)
+
+      // If we couldn't find a next player (went full circle), end the round
+      if (nextState.activePlayerIndex === initialIndex) {
+        return currentState
+      }
+
+      currentState = nextState
       continue
     }
 
@@ -652,13 +672,21 @@ export const processBettingRound = async (
       (p) => p.isActive && !p.isAllIn && p.chips > 0
     ).length
 
-    // If only one player remains active, end the round
+    // If only one player remains active or no players can act, end the round
     if (activePlayerCount <= 1) {
       break
     }
 
     // Move to next player
-    currentState = nextPlayer(currentState)
+    const nextState = nextPlayer(currentState)
+
+    // If we couldn't find a next player (went full circle), end the round
+    if (nextState.activePlayerIndex === currentState.activePlayerIndex) {
+      // No more players can act, end the betting round
+      break
+    }
+
+    currentState = nextState
   }
 
   return currentState
@@ -868,44 +896,82 @@ export const roundLoop = async (
     getPlayerDecision
   )
 
+  // Check if the hand should continue (at least one active player remains)
+  const hasActivePlayers = currentState.players.some((p) => p.isActive)
+  if (!hasActivePlayers) {
+    // No active players left, end the hand and determine winner
+    const showdownState = {
+      ...currentState,
+      currentPhase: "showdown" as GameState["currentPhase"],
+      winningPlayers: undefined,
+      handResults: undefined,
+    }
+    const stateWithEquity = calculateEquity(showdownState)
+    setGameState(stateWithEquity)
+    await wait(delay / 2)
+
+    const { winners, handDescriptions } = determineWinners(stateWithEquity)
+    const finalState = {
+      ...awardPot(stateWithEquity, winners),
+      currentPhase: "showdown" as GameState["currentPhase"],
+      winningPlayers: winners.map((w) => w.id),
+      handResults: handDescriptions,
+    }
+    setGameState(finalState)
+    await wait(delay * 3)
+    return finalState
+  }
+
+  // Check if we need to continue with betting rounds (more than one active player and not everyone is all-in)
+  const activePlayers = currentState.players.filter((p) => p.isActive)
+  const allInCount = activePlayers.filter((p) => p.isAllIn).length
+  const needMoreBetting =
+    activePlayers.length > 1 && allInCount < activePlayers.length
+
   // Deal flop
   currentState = dealFlop(currentState)
   setGameState(currentState)
   await wait(delay)
 
-  // Flop betting round
-  currentState = await processBettingRound(
-    currentState,
-    setGameState,
-    delay / 2,
-    getPlayerDecision
-  )
+  // Flop betting round only if there are players who can still bet
+  if (needMoreBetting) {
+    currentState = await processBettingRound(
+      currentState,
+      setGameState,
+      delay / 2,
+      getPlayerDecision
+    )
+  }
 
   // Deal turn
   currentState = dealTurn(currentState)
   setGameState(currentState)
   await wait(delay)
 
-  // Turn betting round
-  currentState = await processBettingRound(
-    currentState,
-    setGameState,
-    delay / 2,
-    getPlayerDecision
-  )
+  // Turn betting round only if there are players who can still bet
+  if (needMoreBetting) {
+    currentState = await processBettingRound(
+      currentState,
+      setGameState,
+      delay / 2,
+      getPlayerDecision
+    )
+  }
 
   // Deal river
   currentState = dealRiver(currentState)
   setGameState(currentState)
   await wait(delay)
 
-  // River betting round
-  currentState = await processBettingRound(
-    currentState,
-    setGameState,
-    delay / 2,
-    getPlayerDecision
-  )
+  // River betting round only if there are players who can still bet
+  if (needMoreBetting) {
+    currentState = await processBettingRound(
+      currentState,
+      setGameState,
+      delay / 2,
+      getPlayerDecision
+    )
+  }
 
   // Showdown phase
   const showdownState = {
