@@ -53,7 +53,7 @@ export default function PokerTable({ gameState }: PokerTableProps) {
         // Specific mappings for common player counts
         if (players.length === 6) {
           // For 6 players, use these specific positions (evenly spaced)
-          const sixPlayerPositions = [0, 1, 3, 4, 5, 7] // Skip positions 3 and 5 for better spacing
+          const sixPlayerPositions = [0, 1, 3, 4, 5, 7] // Skip positions 2 and 6 for better spacing
           positionIndex = sixPlayerPositions[index]
         } else if (players.length === 2) {
           // For heads-up play (2 players)
