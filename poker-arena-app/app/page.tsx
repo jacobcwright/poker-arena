@@ -37,6 +37,37 @@ export default function Home() {
   const [playerTypes, setPlayerTypes] = useState<Record<number, string>>({}) // Track player types
   const [lastWinAmount, setLastWinAmount] = useState<number>(0) // Store the last winning amount
 
+  // Define model config type
+  type ModelConfig = {
+    name: string
+    apiEndpoint?: string
+    model?: string
+    temperature?: number
+    max_tokens?: number
+  }
+
+  // Configuration for different AI models
+  const modelConfigs: Record<string, ModelConfig> = {
+    AI: {
+      // Regular AI doesn't need API configuration
+      name: "Regular AI",
+    },
+    "DeepSeek-R1:70b": {
+      name: "DeepSeek-R1:70b",
+      apiEndpoint: "/api/ollama",
+      model: "deepseek-r1:70b",
+      temperature: 0.7,
+      max_tokens: 3000,
+    },
+    "Claude-3.7": {
+      name: "Claude-3.7",
+      apiEndpoint: "/api/claude",
+      model: "claude-3-7-sonnet-20250219",
+      temperature: 1,
+      max_tokens: 10000,
+    },
+  }
+
   // Initialize game state when player count changes
   useEffect(() => {
     const initialState = createInitialGameState(playerCount)
@@ -69,37 +100,44 @@ export default function Home() {
   const getPlayerDecision = async (player: Player, gameState: GameState) => {
     const playerType = playerTypes[player.id]
 
-    if (playerType === "Llama") {
-      // Route to Ollama API
-      try {
-        const response = await fetch("/api/ollama", {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            prompt: generatePokerPrompt(player, gameState),
-            model: "deepseek-r1:70b",
-            temperature: 0.7,
-            max_tokens: 500,
-          }),
-        })
+    // Regular AI decision
+    if (playerType === "AI" || !modelConfigs[playerType]) {
+      return getRegularAIDecision(player, gameState)
+    }
 
-        console.log("response", response)
+    // Advanced AI model decision
+    const config = modelConfigs[playerType]
 
-        if (!response.ok) {
-          throw new Error("Failed to get Llama decision")
-        }
+    // If config doesn't have required API settings, use regular AI
+    if (!config.apiEndpoint || !config.model) {
+      return getRegularAIDecision(player, gameState)
+    }
 
-        const data = await response.json()
-        return parseDecisionFromLlama(data.response)
-      } catch (error) {
-        console.error("Error getting Llama decision:", error)
-        // Fallback to regular AI if Llama fails
-        return getRegularAIDecision(player, gameState)
+    try {
+      const response = await fetch(config.apiEndpoint, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          prompt: generatePokerPrompt(player, gameState),
+          model: config.model,
+          temperature: config.temperature ?? 0.7,
+          max_tokens: config.max_tokens ?? 3000,
+        }),
+      })
+
+      console.log(`${playerType} response:`, response)
+
+      if (!response.ok) {
+        throw new Error(`Failed to get ${playerType} decision`)
       }
-    } else {
-      // Use regular AI decision
+
+      const data = await response.json()
+      return parseDecisionFromLlama(data.response)
+    } catch (error) {
+      console.error(`Error getting ${playerType} decision:`, error)
+      // Fallback to regular AI if the model API fails
       return getRegularAIDecision(player, gameState)
     }
   }
@@ -132,6 +170,12 @@ export default function Home() {
     Stage: ${gameState.currentPhase}
 
     Previous actions: ${JSON.stringify(gameState.playerActions)}
+
+    Your output should be in the following format:
+    <think>
+    Your chain of thought
+    </think>
+    Your action
     
     What action would you take? Choose one:
     fold
@@ -338,8 +382,11 @@ export default function Home() {
                       }
                       disabled={isGameRunning || player.chips <= 0}
                     >
-                      <option value="AI">Regular AI</option>
-                      <option value="Llama">Llama Model</option>
+                      {Object.keys(modelConfigs).map((modelKey) => (
+                        <option key={modelKey} value={modelKey}>
+                          {modelConfigs[modelKey].name}
+                        </option>
+                      ))}
                     </select>
                   </div>
                 ))}
