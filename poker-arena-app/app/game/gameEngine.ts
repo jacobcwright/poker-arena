@@ -8,8 +8,12 @@ import {
   Suit,
   Emotion,
 } from "../types"
-import { determineAction, getActionDescription } from "./pokerAI"
-import { evaluateHand, HandResult } from "./handEvaluator"
+import {
+  determineAction,
+  assignPersonalities,
+  getActionDescription,
+} from "./pokerAI"
+import { evaluateHand, compareHands, HandResult } from "./handEvaluator"
 import { calculateEquity } from "./equityCalculator"
 
 export const createNewDeck = (): Card[] => {

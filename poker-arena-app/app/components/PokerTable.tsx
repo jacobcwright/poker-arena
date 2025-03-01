@@ -13,7 +13,12 @@ export default function PokerTable({ gameState }: PokerTableProps) {
     pot,
     currentPhase,
     winningPlayers = [],
+    handResults = {},
   } = gameState
+
+  // Show hand results in showdown phase
+  const showHandResults =
+    currentPhase === "showdown" && Object.keys(handResults).length > 0
 
   return (
     <div className="aspect-[16/9] relative overflow-visible mb-16 mt-8 pt-12">
@@ -41,7 +46,7 @@ export default function PokerTable({ gameState }: PokerTableProps) {
       <div
         className="absolute inset-4 rounded-[50%] shadow-inner felt-texture"
         style={{
-          background: "linear-gradient(to bottom, #0c4a6e, #082f49)", // Deep blue felt color
+          background: 'linear-gradient(to bottom, #0c4a6e, #082f49)', // Deep blue felt color
           boxShadow:
             "inset 0 0 40px rgba(0,0,0,0.5), inset 0 0 80px rgba(0,0,0,0.3)",
         }}

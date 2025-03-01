@@ -17,7 +17,7 @@ export const generatePersonality = (playerId: number): AIPersonality => {
   const playerPersona = generatePokerPlayerName(playerId)
 
   // Default baseline personality
-  const personality: AIPersonality = {
+  let personality: AIPersonality = {
     aggressiveness: 0.5,
     bluffFrequency: 0.3,
     tightness: 0.5,
@@ -646,4 +646,21 @@ export const getActionDescription = (
   }
 
   return `${nickname ? `"${nickname}" ` : ""}${baseDescription}`
+}
+
+// Helper to describe personality type
+const getPersonalityType = (personality: AIPersonality): string => {
+  if (personality.aggressiveness > 0.7 && personality.bluffFrequency > 0.6) {
+    return "Aggressive"
+  } else if (personality.tightness > 0.7) {
+    return "Tight"
+  } else if (personality.aggressiveness < 0.4 && personality.tightness < 0.4) {
+    return "Loose passive"
+  } else if (personality.bluffFrequency > 0.6) {
+    return "Bluffer"
+  } else if (personality.adaptability > 0.7) {
+    return "Adaptive"
+  } else {
+    return "Balanced"
+  }
 }

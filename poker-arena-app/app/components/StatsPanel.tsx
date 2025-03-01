@@ -6,7 +6,7 @@ interface StatsPanelProps {
 }
 
 export default function StatsPanel({ stats, playerNames }: StatsPanelProps) {
-  const { handsPlayed, biggestPot, handWins } = stats
+  const { handsPlayed, biggestPot, biggestWin, handWins } = stats
 
   // Find the player with the most wins
   let bestPlayer = -1

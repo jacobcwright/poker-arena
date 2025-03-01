@@ -34,7 +34,7 @@ export async function GET() {
     const modelProfits = new Map()
 
     if (data) {
-      data.forEach((game) => {
+      data.forEach((game: any) => {
         const { winner, profit } = game
         // Handle the model data safely, considering it might be an array or object
         let modelName = "Unknown Model"
@@ -45,10 +45,8 @@ export async function GET() {
             modelName = game.model[0].name || "Unknown Model"
           }
           // If model is a direct object
-          else if (typeof game.model === "object" && game.model !== null) {
-            // Use type assertion
-            const model = game.model as unknown as { name: string }
-            modelName = model.name || "Unknown Model"
+          else if (typeof game.model === "object" && game.model.name) {
+            modelName = game.model.name
           }
         }
 

@@ -1,6 +1,6 @@
-import { Card, GameState } from "../types"
+import { Card, GameState, Player } from "../types"
 import { evaluateHand, compareHands } from "./handEvaluator"
-import { createNewDeck } from "./gameEngine"
+import { createNewDeck, shuffleDeck } from "./gameEngine"
 
 // Number of simulations to run for Monte Carlo equity calculation
 const SIMULATION_COUNT = 500
@@ -11,7 +11,7 @@ const SIMULATION_COUNT = 500
  * @returns Updated game state with equity for each player
  */
 export const calculateEquity = (gameState: GameState): GameState => {
-  const { players, currentPhase } = gameState
+  const { players, communityCards, currentPhase } = gameState
   const activePlayers = players.filter((p) => p.isActive && p.hand)
 
   // Early return if we have 0 or 1 active players
@@ -96,7 +96,7 @@ export const calculatePreflopEquity = (gameState: GameState): GameState => {
  * Calculate equity using Monte Carlo simulation
  */
 export const calculateEquityMonteCarlo = (gameState: GameState): GameState => {
-  const { players, communityCards } = gameState
+  const { players, communityCards, deck } = gameState
   const newPlayers = [...players]
 
   // Get active players with hands

@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react"
-import { Player as PlayerType, PlayerAction } from "../types"
+import { Player as PlayerType, PlayerAction, Emotion } from "../types"
 import Card from "./Card"
 
 interface PlayerProps {
@@ -57,8 +57,8 @@ export default function Player({
     personality: string
   } => {
     // Default values
-    const nickname = name
-    const personality = "regular"
+    let nickname = name
+    let personality = "regular"
 
     return { nickname, personality }
   }
@@ -372,6 +372,7 @@ export default function Player({
 
     if (nameMatch) {
       const firstName = nameMatch[1]
+      const lastName = nameMatch[3]
 
       // Display first name and last initial for cleaner look
       return `${firstName} '${nickname}'`

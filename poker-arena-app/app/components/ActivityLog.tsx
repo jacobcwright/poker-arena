@@ -17,6 +17,11 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
   const [expandedEntries, setExpandedEntries] = useState<{
     [key: number]: boolean
   }>({})
+  const [summaries, setSummaries] = useState<{ [key: number]: string }>({})
+  const [loadingStates, setLoadingStates] = useState<{
+    [key: number]: boolean
+  }>({})
+  const [newEntryIndex, setNewEntryIndex] = useState<number | null>(null)
   const logContainerRef = useRef<HTMLDivElement>(null)
   const processedEntries = useRef<Set<number>>(new Set())
   const prevLogLength = useRef<number>(0)
