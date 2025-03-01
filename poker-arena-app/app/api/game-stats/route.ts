@@ -47,7 +47,7 @@ export async function GET() {
           // If model is a direct object
           else if (typeof game.model === "object" && game.model !== null) {
             // Use type assertion
-            const model = game.model as any
+            const model = game.model as unknown as { name: string }
             modelName = model.name || "Unknown Model"
           }
         }

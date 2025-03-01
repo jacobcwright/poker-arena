@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
-import { GameState, GameStats, Player, PlayerAction, Emotion } from "./types"
+import { GameState, Player, PlayerAction, Emotion } from "./types"
 import PokerTable from "./components/PokerTable"
 import { createInitialGameState, gameLoop } from "./game/gameEngine"
 import { assignPersonalities, determineAction } from "./game/pokerAI"
@@ -195,7 +195,7 @@ export default function Home() {
     }
 
     // Add a simple reasoning summary based on the action
-    let reasoningSummary = ""
+    const reasoningSummary = ""
 
     return {
       ...decision,

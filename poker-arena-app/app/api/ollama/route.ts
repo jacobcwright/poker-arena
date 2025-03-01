@@ -77,7 +77,7 @@ EMOTION: poker-face
     const data = await ollamaResponse.json()
     console.log("Ollama API response:", data)
 
-    let responseText = data.response || ""
+    const responseText = data.response || ""
 
     const openai = new OpenAI({
       apiKey: process.env.OPENAI_API_KEY,
