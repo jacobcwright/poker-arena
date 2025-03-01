@@ -132,6 +132,12 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
                   <div className={`${getActionColor(entry.action)}`}>
                     {entry.description}
                   </div>
+                  {entry.chainOfThought && (
+                    <div className="mt-1 p-2 bg-gray-700 rounded text-xs text-gray-300 italic">
+                      <div className="font-semibold mb-1">Thought Process:</div>
+                      {entry.chainOfThought}
+                    </div>
+                  )}
                   <div className="flex justify-between items-center mt-1">
                     <span className="text-xs text-gray-500">
                       Phase: {entry.phase}

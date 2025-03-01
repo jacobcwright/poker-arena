@@ -53,7 +53,9 @@ export const shuffleDeck = (deck: Card[]): Card[] => {
 }
 
 // Add this new function to generate unique poker player names with personalities
-export const generatePokerPlayerName = (id: number): { name: string; personality: string } => {
+export const generatePokerPlayerName = (
+  id: number
+): { name: string; personality: string } => {
   const pokerPersonalities = [
     { name: "Tilly 'All-In' Anderson", personality: "aggressive" },
     { name: "Sammy 'Folding Hands' Chen", personality: "tight" },
@@ -74,12 +76,12 @@ export const generatePokerPlayerName = (id: number): { name: string; personality
     { name: "Zoe 'Zen Master' Taylor", personality: "passive" },
     { name: "Harvey 'Hot Streak' Wong", personality: "loose" },
     { name: "Grace 'The Grinder' Miller", personality: "tight" },
-    { name: "Duke 'Double Down' Smith", personality: "risk-taker" }
-  ];
-  
+    { name: "Duke 'Double Down' Smith", personality: "risk-taker" },
+  ]
+
   // Use modulo to cycle through the personalities if there are more players than personalities
-  const personalityIndex = id % pokerPersonalities.length;
-  return pokerPersonalities[personalityIndex];
+  const personalityIndex = id % pokerPersonalities.length
+  return pokerPersonalities[personalityIndex]
 }
 
 export const createInitialGameState = (playerCount: number): GameState => {
@@ -87,7 +89,7 @@ export const createInitialGameState = (playerCount: number): GameState => {
   const players: Player[] = []
 
   for (let i = 0; i < playerCount; i++) {
-    const playerPersona = generatePokerPlayerName(i);
+    const playerPersona = generatePokerPlayerName(i)
     players.push({
       id: i,
       name: playerPersona.name,
@@ -269,7 +271,8 @@ export const addLogEntry = (
   playerId: number,
   action: ActivityLogEntry["action"],
   description: string,
-  amount?: number
+  amount?: number,
+  chainOfThought: string = ""
 ): GameState => {
   const player = state.players.find((p) => p.id === playerId)
   if (!player) return state
@@ -289,6 +292,7 @@ export const addLogEntry = (
     phase: state.currentPhase,
     amount,
     equity: player.equity, // Include current equity in the log
+    chainOfThought,
   })
 
   return newState
@@ -424,8 +428,12 @@ export const processBettingRound = async (
     player: Player,
     gameState: GameState
   ) =>
-    | Promise<{ action: PlayerAction; betAmount?: number }>
-    | { action: PlayerAction; betAmount?: number }
+    | Promise<{
+        action: PlayerAction
+        betAmount?: number
+        chainOfThought?: string
+      }>
+    | { action: PlayerAction; betAmount?: number; chainOfThought?: string }
 ): Promise<GameState> => {
   // This is a work in progress implementation
   let currentState = { ...gameState }
@@ -473,12 +481,14 @@ export const processBettingRound = async (
     // Get player's action - use provided getPlayerDecision if available, otherwise fall back to determineAction
     let action: PlayerAction
     let betAmount: number = 0
+    let chainOfThought: string = ""
 
     if (getPlayerDecision) {
       // Use the provided decision function (could be from Llama or other source)
       const decision = await getPlayerDecision(activePlayer, currentState)
       action = decision.action
       betAmount = decision.betAmount || 0
+      chainOfThought = decision.chainOfThought || ""
     } else {
       // Fall back to the default AI decision
       const decision = determineAction(currentState, activePlayer.id)
@@ -578,7 +588,8 @@ export const processBettingRound = async (
       actionDescription,
       action === "bet" || action === "raise"
         ? activePlayer.currentBet
-        : undefined
+        : undefined,
+      chainOfThought
     )
 
     // Mark this player as having acted
@@ -776,7 +787,16 @@ export const roundLoop = async (
   gameState: GameState,
   setGameState: (state: GameState) => void,
   delay: number,
-  getPlayerDecision: (player: any, gameState: GameState) => Promise<any>
+  getPlayerDecision: (
+    player: Player,
+    gameState: GameState
+  ) =>
+    | Promise<{
+        action: PlayerAction
+        betAmount?: number
+        chainOfThought?: string
+      }>
+    | { action: PlayerAction; betAmount?: number; chainOfThought?: string }
 ): Promise<GameState> => {
   // Prepare new round: reset round-specific info while keeping persistent data (chips, etc.)
   let currentState = setupNextHand(gameState)
@@ -865,7 +885,16 @@ export const gameLoop = async (
   initialGameState: GameState,
   setGameState: (state: GameState) => void,
   delay: number,
-  getPlayerDecision: (player: any, gameState: GameState) => Promise<any>,
+  getPlayerDecision: (
+    player: Player,
+    gameState: GameState
+  ) =>
+    | Promise<{
+        action: PlayerAction
+        betAmount?: number
+        chainOfThought?: string
+      }>
+    | { action: PlayerAction; betAmount?: number; chainOfThought?: string },
   shouldStop: () => boolean
 ): Promise<void> => {
   let currentState = initialGameState

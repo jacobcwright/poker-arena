@@ -116,33 +116,65 @@ export default function Home() {
     }
     Current pot: $${gameState.pot}
     Your chips: $${player.chips}
+    Your current bet: $${player.currentBet}
+    Opponent's Chips: $${
+      gameState.players
+        .filter((p) => p.id !== player.id)
+        .map((p) => p.chips)
+        .join(", ") || 0
+    }
+
     Current bet to call: $${
       (gameState.players.find((p) => p.id === player.id)?.currentBet || 0) -
       (player.currentBet || 0)
     }
+
+    Stage: ${gameState.currentPhase}
+
+    Previous actions: ${JSON.stringify(gameState.playerActions)}
     
-    What action would you take? Choose one: fold, check, call, raise (with amount).`
+    What action would you take? Choose one:
+    fold
+    check
+    call
+    bet (with amount)
+    allin
+    `
   }
 
   const parseDecisionFromLlama = (response: string) => {
-    // Simple parsing logic - can be improved
+    // Check if there's a thinking section, and only parse after it
     const lowerResponse = response.toLowerCase()
-    if (lowerResponse.includes("fold"))
-      return { action: "fold" as PlayerAction }
-    if (lowerResponse.includes("check"))
-      return { action: "check" as PlayerAction }
-    if (lowerResponse.includes("call"))
-      return { action: "call" as PlayerAction }
+    const thinkIndex = lowerResponse.indexOf("</think>")
+
+    const chainOfThought = response.substring(0, thinkIndex + 9)
+
+    // Use only the text after </think> if it exists, otherwise use the whole response
+    const decisionText =
+      thinkIndex !== -1
+        ? lowerResponse.substring(thinkIndex + 9) // Length of </think> is 9
+        : lowerResponse
+
+    if (decisionText.includes("fold"))
+      return { action: "fold" as PlayerAction, chainOfThought }
+    if (decisionText.includes("check"))
+      return { action: "check" as PlayerAction, chainOfThought }
+    if (decisionText.includes("call"))
+      return { action: "call" as PlayerAction, chainOfThought }
 
     // Try to extract raise amount
-    if (lowerResponse.includes("raise")) {
-      const match = lowerResponse.match(/raise.*?(\d+)/)
-      const betAmount = match ? parseInt(match[1]) : 20 // Default raise
-      return { action: "raise" as PlayerAction, betAmount }
+    if (decisionText.includes("raise") || decisionText.includes("bet")) {
+      const match = decisionText.match(/(raise|bet).*?(\d+)/)
+      const betAmount = match ? parseInt(match[2]) : 20 // Default raise
+      return { action: "raise" as PlayerAction, betAmount, chainOfThought }
+    }
+
+    if (decisionText.includes("allin")) {
+      return { action: "allIn" as PlayerAction, chainOfThought }
     }
 
     // Default to call if parsing fails
-    return { action: "call" as PlayerAction }
+    return { action: "call" as PlayerAction, chainOfThought }
   }
 
   // Update the ref when the state changes

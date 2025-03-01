@@ -53,6 +53,7 @@ export interface ActivityLogEntry {
   timestamp: number
   phase: GamePhase
   equity?: number // Player's equity at the time of this action
+  chainOfThought?: string // AI's thought process for this action
 }
 
 export interface GameState {
