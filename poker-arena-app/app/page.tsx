@@ -338,6 +338,8 @@ export default function Home() {
         : "None"
     }
 
+    Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.
+
     What action would you take? Choose one:
     fold
     check
