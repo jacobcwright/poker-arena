@@ -20,6 +20,25 @@ You can start editing the page by modifying `app/page.tsx`. The page auto-update
 
 This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
 
+## Supabase Setup
+
+This project uses Supabase for database functionality. To set up:
+
+1. Create a Supabase account and project at [supabase.com](https://supabase.com)
+2. Create a table called `game` with at least the following columns:
+   - `winner_id` (text)
+   - `profit` (numeric)
+3. Copy the `.env.local.example` file to `.env.local` and update with your Supabase credentials:
+   ```
+   NEXT_PUBLIC_SUPABASE_URL=your-project-url
+   NEXT_PUBLIC_SUPABASE_ANON_KEY=your-anon-key
+   ```
+4. Restart your development server if it's already running
+
+## Stats Page
+
+Visit `/stats` to see a bar chart visualization of the maximum profit for each winner in the game table.
+
 ## Learn More
 
 To learn more about Next.js, take a look at the following resources:
