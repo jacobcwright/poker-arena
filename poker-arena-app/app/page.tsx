@@ -247,7 +247,7 @@ export default function Home() {
         {/* Game Controls */}
         <div className="bg-gray-800 rounded-lg p-6 mb-8">
           {gameState && !isGameRunning && (
-            <div className="mt-6 border-t border-gray-700 pt-4">
+            <div className="mt-6 border-t border-gray-700 pt-4 mb-8">
               <h3 className="text-lg font-semibold mb-3">Player Types</h3>
               <div className="grid grid-cols-3 gap-4">
                 {gameState.players.map((player) => (
