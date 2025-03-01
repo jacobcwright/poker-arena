@@ -1,7 +1,7 @@
-"use client"
-import { useEffect, useState, useRef } from "react"
-import { GameState, Player, PlayerAction, Emotion } from "./types"
-import PokerTable from "./components/PokerTable"
+"use client";
+import { useEffect, useState, useRef } from "react";
+import { GameState, Player, PlayerAction, Emotion } from "./types";
+import PokerTable from "./components/PokerTable";
 import {
   createInitialGameState,
   dealFlop,
@@ -15,19 +15,19 @@ import {
   setupNextHand,
   addLogEntry,
   gameLoop,
-} from "./game/gameEngine"
-import { assignPersonalities, determineAction } from "./game/pokerAI"
-import { calculateEquity } from "./game/equityCalculator"
-import StatsPanel from "./components/StatsPanel"
-import ActivityLog from "./components/ActivityLog"
+} from "./game/gameEngine";
+import { assignPersonalities, determineAction } from "./game/pokerAI";
+import { calculateEquity } from "./game/equityCalculator";
+import StatsPanel from "./components/StatsPanel";
+import ActivityLog from "./components/ActivityLog";
 
 // Define interface for AI decision to ensure type consistency
 interface AIDecision {
-  action: PlayerAction
-  betAmount?: number
-  chainOfThought?: string
-  emotion?: Emotion
-  reasoningSummary?: string
+  action: PlayerAction;
+  betAmount?: number;
+  chainOfThought?: string;
+  emotion?: Emotion;
+  reasoningSummary?: string;
 }
 
 // Add global styles for animations
@@ -92,33 +92,33 @@ const globalStyles = `
     0% { background-position: 0% 0; }
     100% { background-position: 200% 0; }
   }
-`
+`;
 
 export default function Home() {
-  const [playerCount, setPlayerCount] = useState(4)
-  const [isGameRunning, setIsGameRunning] = useState(false)
-  const [gameState, setGameState] = useState<GameState | null>(null)
-  const [gamePhaseDelay, setGamePhaseDelay] = useState(2000) // milliseconds
-  const roundRef = useRef(0)
-  const [gameStats, setGameStats] = useState<GameStats>(createInitialStats())
-  const [isPaused, setIsPaused] = useState(false)
+  const [playerCount, setPlayerCount] = useState(4);
+  const [isGameRunning, setIsGameRunning] = useState(false);
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [gamePhaseDelay, setGamePhaseDelay] = useState(2000); // milliseconds
+  const roundRef = useRef(0);
+  const [gameStats, setGameStats] = useState<GameStats>(createInitialStats());
+  const [isPaused, setIsPaused] = useState(false);
   const pauseResumeRef = useRef<{ resolve: (() => void) | null }>({
     resolve: null,
-  })
-  const isPausedRef = useRef(false)
-  const [isLogOpen, setIsLogOpen] = useState(false)
-  const [playerTypes, setPlayerTypes] = useState<Record<number, string>>({}) // Track player types
-  const [lastWinAmount, setLastWinAmount] = useState<number>(0) // Store the last winning amount
+  });
+  const isPausedRef = useRef(false);
+  const [isLogOpen, setIsLogOpen] = useState(false);
+  const [playerTypes, setPlayerTypes] = useState<Record<number, string>>({}); // Track player types
+  const [lastWinAmount, setLastWinAmount] = useState<number>(0); // Store the last winning amount
 
   // Define model config type
   type ModelConfig = {
-    name: string
-    apiEndpoint?: string
-    model?: string
-    temperature?: number
-    max_tokens?: number
-    special_prompt?: string
-  }
+    name: string;
+    apiEndpoint?: string;
+    model?: string;
+    temperature?: number;
+    max_tokens?: number;
+    special_prompt?: string;
+  };
 
   // Configuration for different AI models
   const modelConfigs: Record<string, ModelConfig> = {
@@ -128,7 +128,7 @@ export default function Home() {
     },
     "DeepSeek-R1:70b": {
       name: "DeepSeek-R1:70b",
-      apiEndpoint: "/api/ollama",
+      apiEndpoint: "/api/deepseek",
       model: "deepseek-r1:70b",
       temperature: 0.7,
       max_tokens: 3000,
@@ -136,7 +136,7 @@ export default function Home() {
     },
     "DeepSeek-R1:70b-Bluff": {
       name: "DeepSeek-R1:70b-Bluff",
-      apiEndpoint: "/api/ollama",
+      apiEndpoint: "/api/deepseek",
       model: "deepseek-r1:70b",
       temperature: 0.7,
       max_tokens: 3000,
@@ -169,43 +169,92 @@ export default function Home() {
       special_prompt:
         "Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.",
     },
-  }
+    "Llama-3.1-8b": {
+      name: "Llama-3.1-8b",
+      apiEndpoint: "/api/ollama",
+      model: "llama3.1:8b",
+      temperature: 0.7,
+      max_tokens: 3000,
+      special_prompt: "",
+    },
+    "Llama-3.1-8b-Bluff": {
+      name: "Llama-3.1-8b-Bluff",
+      apiEndpoint: "/api/ollama",
+      model: "llama3.1:8b",
+      temperature: 0.7,
+      max_tokens: 3000,
+      special_prompt:
+        "Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.",
+    },
+    "Phi-4-14b": {
+      name: "Phi-4-14b",
+      apiEndpoint: "/api/ollama",
+      model: "phi-4-14b",
+      temperature: 0.7,
+      max_tokens: 3000,
+    },
+    "Phi-4-14b-Bluff": {
+      name: "Phi-4-14b-Bluff",
+      apiEndpoint: "/api/ollama",
+      model: "phi-4-14b",
+      temperature: 0.7,
+      max_tokens: 3000,
+      special_prompt:
+        "Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.",
+    },
+    "Qwen-2.5-3b": {
+      name: "Qwen-2.5-3b",
+      apiEndpoint: "/api/ollama",
+      model: "qwen2.5-3b",
+      temperature: 0.7,
+      max_tokens: 3000,
+    },
+    "Qwen-2.5-3b-Bluff": {
+      name: "Qwen-2.5-3b-Bluff",
+      apiEndpoint: "/api/ollama",
+      model: "qwen2.5-3b",
+      temperature: 0.7,
+      max_tokens: 3000,
+      special_prompt:
+        "Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.",
+    },
+  };
 
   // Initialize game state when player count changes
   useEffect(() => {
-    const initialState = createInitialGameState(playerCount)
-    setGameState(initialState)
+    const initialState = createInitialGameState(playerCount);
+    setGameState(initialState);
 
     // Initialize player types with default "AI"
-    const initialPlayerTypes: Record<number, string> = {}
+    const initialPlayerTypes: Record<number, string> = {};
     initialState.players.forEach((player) => {
-      initialPlayerTypes[player.id] = "AI"
+      initialPlayerTypes[player.id] = "AI";
       // Set initial player name based on model type
-      player.name = `${modelConfigs["AI"].name} #${player.id + 1}`
-    })
-    setPlayerTypes(initialPlayerTypes)
-  }, [playerCount])
+      player.name = `${modelConfigs["AI"].name} #${player.id + 1}`;
+    });
+    setPlayerTypes(initialPlayerTypes);
+  }, [playerCount]);
 
   const handlePlayerTypeChange = (playerId: number, type: string) => {
     setPlayerTypes((prev) => {
       const newTypes = {
         ...prev,
         [playerId]: type,
-      }
+      };
 
       // Update the player name when changing the model type
       if (gameState) {
-        const player = gameState.players.find((p) => p.id === playerId)
+        const player = gameState.players.find((p) => p.id === playerId);
         if (player) {
-          player.name = `${modelConfigs[type].name} #${playerId + 1}`
+          player.name = `${modelConfigs[type].name} #${playerId + 1}`;
           // Create a new reference to cause a re-render
-          setGameState({ ...gameState })
+          setGameState({ ...gameState });
         }
       }
 
-      return newTypes
-    })
-  }
+      return newTypes;
+    });
+  };
 
   // Add this function to handle regular AI decisions
   const getRegularAIDecision = (
@@ -213,39 +262,39 @@ export default function Home() {
     gameState: GameState
   ): AIDecision => {
     // Use the existing AI logic from your game engine
-    const decision = determineAction(gameState, player.id)
+    const decision = determineAction(gameState, player.id);
 
     // Add an appropriate emotion based on the decision
-    let emotion: Emotion = "neutral"
+    let emotion: Emotion = "neutral";
     switch (decision.action) {
       case "fold":
-        emotion = "disappointed"
-        break
+        emotion = "disappointed";
+        break;
       case "check":
-        emotion = "neutral"
-        break
+        emotion = "neutral";
+        break;
       case "call":
-        emotion = "thoughtful"
-        break
+        emotion = "thoughtful";
+        break;
       case "bet":
       case "raise":
-        emotion = Math.random() > 0.5 ? "confident" : "bluffing"
-        break
+        emotion = Math.random() > 0.5 ? "confident" : "bluffing";
+        break;
       case "allIn":
-        emotion = Math.random() > 0.7 ? "excited" : "nervous"
-        break
+        emotion = Math.random() > 0.7 ? "excited" : "nervous";
+        break;
     }
 
     // Add a simple reasoning summary based on the action
-    const reasoningSummary = ""
+    const reasoningSummary = "";
 
     return {
       ...decision,
       emotion,
       reasoningSummary,
       chainOfThought: reasoningSummary, // Use the summary as chainOfThought too for consistency
-    }
-  }
+    };
+  };
 
   /**
    * Get the decision from the LLM.
@@ -254,19 +303,19 @@ export default function Home() {
     player: Player,
     gameState: GameState
   ): Promise<AIDecision> => {
-    const playerType = playerTypes[player.id]
+    const playerType = playerTypes[player.id];
 
     // Regular AI decision
     if (playerType === "AI" || !modelConfigs[playerType]) {
-      return getRegularAIDecision(player, gameState)
+      return getRegularAIDecision(player, gameState);
     }
 
     // Advanced AI model decision
-    const config = modelConfigs[playerType]
+    const config = modelConfigs[playerType];
 
     // If config doesn't have required API settings, use regular AI
     if (!config.apiEndpoint || !config.model) {
-      return getRegularAIDecision(player, gameState)
+      return getRegularAIDecision(player, gameState);
     }
 
     try {
@@ -281,19 +330,19 @@ export default function Home() {
           temperature: config.temperature ?? 0.7,
           max_tokens: config.max_tokens ?? 3000,
         }),
-      })
+      });
 
-      console.log(`${playerType} response:`, response)
+      console.log(`${playerType} response:`, response);
 
       if (!response.ok) {
-        throw new Error(`Failed to get ${playerType} decision`)
+        throw new Error(`Failed to get ${playerType} decision`);
       }
 
-      const data = await response.json()
+      const data = await response.json();
 
       // Handle the structured response from API routes
       if (data.response) {
-        const decision = parseDecisionFromLlama(data.response)
+        const decision = parseDecisionFromLlama(data.response);
 
         // Return decision with additional fields from the API
         return {
@@ -301,17 +350,17 @@ export default function Home() {
           emotion: data.emotion || decision.emotion || "neutral",
           chainOfThought: data.reasoning || decision.chainOfThought || "",
           reasoningSummary: data.reasoning_summary || "",
-        }
+        };
       } else {
         // Fallback to parsing the raw response
-        return parseDecisionFromLlama(data.text || "")
+        return parseDecisionFromLlama(data.text || "");
       }
     } catch (error) {
-      console.error(`Error getting ${playerType} decision:`, error)
+      console.error(`Error getting ${playerType} decision:`, error);
       // Fallback to regular AI if the model API fails
-      return getRegularAIDecision(player, gameState)
+      return getRegularAIDecision(player, gameState);
     }
-  }
+  };
 
   // Helper functions for Llama integration
   const generatePokerPrompt = (
@@ -374,30 +423,30 @@ export default function Home() {
     bet (with amount)
     raise (with amount)
     allin
-    `
-    console.log("prompt", prompt)
-    return prompt
-  }
+    `;
+    console.log("prompt", prompt);
+    return prompt;
+  };
 
   const parseDecisionFromLlama = (response: string): AIDecision => {
     // Check if there's a thinking section, and only parse after it
-    const lowerResponse = response.toLowerCase()
-    const thinkIndex = lowerResponse.indexOf("</think>")
+    const lowerResponse = response.toLowerCase();
+    const thinkIndex = lowerResponse.indexOf("</think>");
 
     const chainOfThought =
-      thinkIndex !== -1 ? response.substring(7, thinkIndex) : ""
+      thinkIndex !== -1 ? response.substring(7, thinkIndex) : "";
 
     // Use only the text after </think> if it exists, otherwise use the whole response
     const decisionText =
       thinkIndex !== -1
         ? lowerResponse.substring(thinkIndex + 9) // Length of </think> is 9
-        : lowerResponse
+        : lowerResponse;
 
     // Extract emotion from the response
-    let emotion: Emotion = "neutral"
-    const emotionMatch = response.match(/EMOTION:\s*(\w+(-\w+)?)/i)
+    let emotion: Emotion = "neutral";
+    const emotionMatch = response.match(/EMOTION:\s*(\w+(-\w+)?)/i);
     if (emotionMatch && emotionMatch[1]) {
-      const extractedEmotion = emotionMatch[1].toLowerCase() as Emotion
+      const extractedEmotion = emotionMatch[1].toLowerCase() as Emotion;
       const validEmotions: Emotion[] = [
         "neutral",
         "happy",
@@ -414,10 +463,10 @@ export default function Home() {
         "calculating",
         "intimidating",
         "worried",
-      ]
+      ];
 
       if (validEmotions.includes(extractedEmotion)) {
-        emotion = extractedEmotion
+        emotion = extractedEmotion;
       }
     }
 
@@ -427,33 +476,33 @@ export default function Home() {
         chainOfThought,
         emotion,
         reasoningSummary: "Folding due to a weak hand.",
-      }
+      };
     if (decisionText.includes("check"))
       return {
         action: "check" as PlayerAction,
         chainOfThought,
         emotion,
         reasoningSummary: "Checking to see the next card.",
-      }
+      };
     if (decisionText.includes("call"))
       return {
         action: "call" as PlayerAction,
         chainOfThought,
         emotion,
         reasoningSummary: "Calling to stay in the hand.",
-      }
+      };
 
     // Try to extract raise amount
     if (decisionText.includes("raise") || decisionText.includes("bet")) {
-      const match = decisionText.match(/(raise|bet).*?(\d+)/)
-      const betAmount = match ? parseInt(match[2]) : 20 // Default raise
+      const match = decisionText.match(/(raise|bet).*?(\d+)/);
+      const betAmount = match ? parseInt(match[2]) : 20; // Default raise
       return {
         action: "raise" as PlayerAction,
         betAmount,
         chainOfThought,
         emotion,
         reasoningSummary: `Raising ${betAmount} to build the pot.`,
-      }
+      };
     }
 
     if (
@@ -466,7 +515,7 @@ export default function Home() {
         chainOfThought,
         emotion,
         reasoningSummary: "Going all-in for maximum value.",
-      }
+      };
     }
 
     // Default to call if parsing fails
@@ -475,22 +524,22 @@ export default function Home() {
       chainOfThought,
       emotion,
       reasoningSummary: "Calling to see what happens next.",
-    }
-  }
+    };
+  };
 
   // Update the ref when the state changes
   useEffect(() => {
-    isPausedRef.current = isPaused
-  }, [isPaused])
+    isPausedRef.current = isPaused;
+  }, [isPaused]);
 
   // Update the existing useEffect for gameLoop with the following code:
   useEffect(() => {
-    if (!isGameRunning) return
+    if (!isGameRunning) return;
 
-    let isMounted = true
+    let isMounted = true;
 
     // A helper to stop the loop if the component unmounts or game stops
-    const shouldStop = () => !isMounted || !isGameRunning
+    const shouldStop = () => !isMounted || !isGameRunning;
 
     // Wrap the getPlayerDecision to capture win amounts
     const wrappedGetPlayerDecision = async (
@@ -505,12 +554,12 @@ export default function Home() {
       ) {
         const winAmount = Math.floor(
           gameState.pot / gameState.winningPlayers.length
-        )
-        setLastWinAmount(winAmount)
+        );
+        setLastWinAmount(winAmount);
       }
 
       // Get the decision from the appropriate AI model
-      const decision = await getPlayerDecision(player, gameState)
+      const decision = await getPlayerDecision(player, gameState);
 
       // Ensure that all fields are properly passed through
       return {
@@ -519,63 +568,63 @@ export default function Home() {
         chainOfThought: decision.chainOfThought,
         emotion: decision.emotion,
         reasoningSummary: decision.reasoningSummary,
-      }
-    }
+      };
+    };
 
     // Start the game loop using the new gameLoop function from gameEngine
-    ;(async () => {
+    (async () => {
       // Use the current gameState if available, otherwise initialize one
       const initialState = gameState || {
         ...createInitialGameState(playerCount),
         round: 1,
-      }
+      };
       // If it's the first round, assign AI personalities
       if (initialState.round === 1) {
-        assignPersonalities(initialState.players)
+        assignPersonalities(initialState.players);
       }
       // Run the continuous game loop; it will handle rounds without resetting chip counts
-      console.log("initialState", initialState)
+      console.log("initialState", initialState);
       await gameLoop(
         initialState,
         setGameState,
         gamePhaseDelay,
         wrappedGetPlayerDecision,
         shouldStop
-      )
-    })()
+      );
+    })();
 
     return () => {
-      isMounted = false
-    }
-  }, [isGameRunning, playerCount, gamePhaseDelay])
+      isMounted = false;
+    };
+  }, [isGameRunning, playerCount, gamePhaseDelay]);
 
   // Toggle game on/off
   const toggleGame = () => {
     if (!isGameRunning) {
       // Create a fresh game state and reset round counter
-      roundRef.current = 1
+      roundRef.current = 1;
       const newGameState = {
         ...createInitialGameState(playerCount),
         round: roundRef.current,
-      }
+      };
 
       // Update player names based on their assigned model types
       newGameState.players.forEach((player) => {
-        const modelType = playerTypes[player.id] || "AI"
-        player.name = `${modelConfigs[modelType].name} #${player.id + 1}`
-      })
+        const modelType = playerTypes[player.id] || "AI";
+        player.name = `${modelConfigs[modelType].name} #${player.id + 1}`;
+      });
 
-      setGameState(newGameState)
-      setIsGameRunning(true)
+      setGameState(newGameState);
+      setIsGameRunning(true);
     } else {
-      setIsGameRunning(false)
+      setIsGameRunning(false);
     }
-  }
+  };
 
   // Toggle pause state
   const togglePause = () => {
-    setIsPaused((prev) => !prev)
-  }
+    setIsPaused((prev) => !prev);
+  };
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -822,14 +871,14 @@ export default function Home() {
                 {/* Player skeletons */}
                 {[...Array(6)].map((_, i) => {
                   // Position players around the table, mimicking the actual layout
-                  const sixPlayerPositions = [0, 1, 3, 4, 5, 7] // Skip positions 2 and 6 for better spacing
-                  const positionIndex = sixPlayerPositions[i]
-                  const angle = positionIndex * 45 * (Math.PI / 180)
+                  const sixPlayerPositions = [0, 1, 3, 4, 5, 7]; // Skip positions 2 and 6 for better spacing
+                  const positionIndex = sixPlayerPositions[i];
+                  const angle = positionIndex * 45 * (Math.PI / 180);
 
                   // Adjust this radius to position players correctly on the table edge
-                  const radius = 40
-                  const x = 50 + radius * Math.cos(angle)
-                  const y = 50 + radius * Math.sin(angle)
+                  const radius = 40;
+                  const x = 50 + radius * Math.cos(angle);
+                  const y = 50 + radius * Math.sin(angle);
 
                   return (
                     <div
@@ -854,7 +903,7 @@ export default function Home() {
                         </div>
                       </div>
                     </div>
-                  )
+                  );
                 })}
               </div>
             </div>
@@ -926,8 +975,8 @@ export default function Home() {
                       .map((playerId) => {
                         const player = gameState.players.find(
                           (p) => p.id === playerId
-                        )
-                        return player ? player.name : ""
+                        );
+                        return player ? player.name : "";
                       })
                       .filter(Boolean)
                       .join(", ")}
@@ -946,12 +995,12 @@ export default function Home() {
                               entry.action === "win" &&
                               gameState.winningPlayers?.includes(entry.playerId)
                           )
-                          .sort((a, b) => b.timestamp - a.timestamp)
+                          .sort((a, b) => b.timestamp - a.timestamp);
 
                         if (winEntries.length > 0) {
-                          return winEntries[0].amount || 0
+                          return winEntries[0].amount || 0;
                         }
-                        return 0
+                        return 0;
                       })()
                     : 0}
                 </p>
@@ -978,7 +1027,7 @@ export default function Home() {
         />
       </main>
     </div>
-  )
+  );
 }
 
 // Create an initial stats object
@@ -988,5 +1037,5 @@ const createInitialStats = (): GameStats => {
     biggestPot: 0,
     biggestWin: {},
     handWins: {},
-  }
-}
+  };
+};
