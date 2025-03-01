@@ -63,6 +63,9 @@ export default function Home() {
     return determineAction(gameState, player.id)
   }
 
+  /**
+   * Get the decision from the LLM.
+   */
   const getPlayerDecision = async (player: Player, gameState: GameState) => {
     const playerType = playerTypes[player.id]
 
@@ -81,6 +84,8 @@ export default function Home() {
             max_tokens: 500,
           }),
         })
+
+        console.log("response", response)
 
         if (!response.ok) {
           throw new Error("Failed to get Llama decision")
@@ -186,6 +191,7 @@ export default function Home() {
         assignPersonalities(initialState.players)
       }
       // Run the continuous game loop; it will handle rounds without resetting chip counts
+      console.log("initialState", initialState)
       await gameLoop(
         initialState,
         setGameState,

@@ -470,11 +470,21 @@ export const processBettingRound = async (
       break
     }
 
-    // Get player's action from AI
-    const { action, betAmount = 0 } = determineAction(
-      currentState,
-      activePlayer.id
-    )
+    // Get player's action - use provided getPlayerDecision if available, otherwise fall back to determineAction
+    let action: PlayerAction
+    let betAmount: number = 0
+
+    if (getPlayerDecision) {
+      // Use the provided decision function (could be from Llama or other source)
+      const decision = await getPlayerDecision(activePlayer, currentState)
+      action = decision.action
+      betAmount = decision.betAmount || 0
+    } else {
+      // Fall back to the default AI decision
+      const decision = determineAction(currentState, activePlayer.id)
+      action = decision.action
+      betAmount = decision.betAmount || 0
+    }
 
     // Get a description of the AI's thought process for the log
     const actionDescription = getActionDescription(

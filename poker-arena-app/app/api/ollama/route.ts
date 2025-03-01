@@ -72,7 +72,7 @@ export async function POST(request: NextRequest) {
 
     // Parse and return the response
     const data = (await ollamaResponse.json()) as OllamaResponseData
-    console.log("Ollama API response:", data.response.substring(0, 100) + "...")
+    console.log("Ollama API response:", data.response)
     return NextResponse.json(data)
   } catch (error) {
     console.error("Error calling Ollama API:", error)
