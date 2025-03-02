@@ -218,6 +218,15 @@ export default function Home() {
       special_prompt:
         "Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.",
     },
+    "Qwen-2.5-3b-Thinking": {
+      name: "Qwen-2.5-3b-Thinking",
+      apiEndpoint: "/api/ollama",
+      model: "custom-qwen",
+      temperature: 0.7,
+      max_tokens: 3000,
+      special_prompt:
+        "Try to make the best decision based on the information provided. You can and should bluff to throw off your opponents & win the pot.",
+    },
   }
 
   // Initialize game state when player count changes
