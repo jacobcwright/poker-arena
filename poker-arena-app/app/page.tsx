@@ -1,6 +1,6 @@
 "use client"
 import { useEffect, useState, useRef } from "react"
-import { GameState, Player, PlayerAction, Emotion } from "./types"
+import { GameState, Player, PlayerAction, Emotion, GameStats } from "./types"
 import PokerTable from "./components/PokerTable"
 import {
   createInitialGameState,
@@ -20,6 +20,7 @@ import { assignPersonalities, determineAction } from "./game/pokerAI"
 import { calculateEquity } from "./game/equityCalculator"
 import StatsPanel from "./components/StatsPanel"
 import ActivityLog from "./components/ActivityLog"
+import Card from "./components/Card"
 
 // Define interface for AI decision to ensure type consistency
 interface AIDecision {
@@ -91,6 +92,34 @@ const globalStyles = `
   @keyframes shimmer {
     0% { background-position: 0% 0; }
     100% { background-position: 200% 0; }
+  }
+
+  /* Mobile responsive styles */
+  @media (max-width: 640px) {
+    .poker-table-container {
+      display: none !important;
+    }
+
+    .mobile-pot-display {
+      display: block !important;
+    }
+
+    .mobile-players-container {
+      display: block !important;
+    }
+    
+    .player-card-mobile {
+      margin-bottom: 0.5rem;
+      width: 100%;
+    }
+    
+    .desktop-only {
+      display: none !important;
+    }
+    
+    .mobile-only {
+      display: block !important;
+    }
   }
 `
 
@@ -654,7 +683,7 @@ export default function Home() {
           {gameState && !isGameRunning && (
             <div className="mt-6 border-t border-gray-700 pt-4 mb-8">
               <h3 className="text-lg font-semibold mb-3">Player Types</h3>
-              <div className="grid grid-cols-3 gap-4">
+              <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
                 {gameState.players.map((player) => (
                   <div
                     key={player.id}
@@ -696,7 +725,7 @@ export default function Home() {
               </div>
             </div>
           )}
-          <div className="flex items-center gap-8 justify-center">
+          <div className="flex flex-wrap items-center gap-4 justify-center">
             <div className="flex items-center gap-4">
               <label htmlFor="playerCount">Players:</label>
               <select
@@ -780,15 +809,121 @@ export default function Home() {
           </div>
 
           {/* Hint for card hover feature */}
-          <div className="text-center mt-3 text-gray-400 text-sm">
+          <div className="text-center mt-3 text-gray-400 text-sm desktop-only">
             <span className="bg-gray-700 px-2 py-1 rounded inline-block">
               💡 Tip: Hover over any player to see their cards
             </span>
           </div>
         </div>
 
-        {/* Poker Table */}
-        <div className="py-20">
+        {/* Mobile Pot Display - Only visible on mobile */}
+        {gameState && (
+          <div className="mobile-pot-display hidden md:hidden p-2 bg-gray-800 rounded-lg mb-2">
+            <div className="flex items-center justify-between px-3">
+              <div className="bg-green-900 bg-opacity-80 px-3 py-1.5 rounded-full text-white text-base font-bold shadow inline-flex items-center">
+                <span className="text-yellow-400 mr-1">$</span>
+                {gameState.pot}
+              </div>
+
+              <div className="text-right">
+                <p className="text-gray-400 text-sm mb-1">
+                  Phase: {gameState.currentPhase}
+                </p>
+                <div className="flex justify-end gap-1">
+                  {gameState.communityCards.length > 0 ? (
+                    gameState.communityCards.map((card, index) => (
+                      <div
+                        key={index}
+                        className="transform card-shadow"
+                        style={{ width: "30px" }}
+                      >
+                        <Card key={index} card={card} />
+                      </div>
+                    ))
+                  ) : (
+                    <div className="text-white text-xs font-light opacity-80">
+                      {gameState.currentPhase === "idle"
+                        ? "Ready"
+                        : "Waiting..."}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Mobile Players Display - Only visible on mobile */}
+        {gameState && (
+          <div className="mobile-players-container hidden md:hidden mb-4">
+            {gameState.players.map((player) => (
+              <div
+                key={player.id}
+                className={`player-card-mobile p-3 rounded-lg mb-2 ${
+                  player.isTurn
+                    ? "bg-gray-700 border-l-4 border-green-500"
+                    : player.chips <= 0
+                    ? "bg-gray-700 border-l-4 border-red-600"
+                    : "bg-gray-700"
+                }`}
+              >
+                <div className="flex justify-between items-center">
+                  <div className="flex items-center gap-2">
+                    <div
+                      className={`w-6 h-6 rounded-full flex items-center justify-center text-xs ${
+                        player.isDealer ? "bg-blue-600" : "bg-gray-800"
+                      }`}
+                    >
+                      {player.isDealer ? "D" : player.id + 1}
+                    </div>
+                    <span className="font-medium text-sm">{player.name}</span>
+                  </div>
+                  <span className="text-base font-bold">${player.chips}</span>
+                </div>
+
+                <div className="flex justify-between items-center mt-2">
+                  <div>
+                    {player.currentBet > 0 && (
+                      <div className="text-yellow-400 text-xs">
+                        Current bet: ${player.currentBet}
+                      </div>
+                    )}
+
+                    {player.isAllIn && (
+                      <div className="mt-1 bg-red-600 text-white text-xs px-1.5 py-0.5 rounded-full inline-block">
+                        ALL IN
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="flex justify-end gap-1">
+                    {player.hand && player.hand.length > 0 ? (
+                      player.hand.map((card, idx) => (
+                        <div
+                          key={idx}
+                          className="transform"
+                          style={{ width: "40px" }}
+                        >
+                          <Card
+                            key={idx}
+                            card={card}
+                            hidden={false}
+                            faceUp={true}
+                          />
+                        </div>
+                      ))
+                    ) : (
+                      <div className="text-gray-500 text-xs">No cards</div>
+                    )}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {/* Poker Table - Hidden on mobile */}
+        <div className="py-20 poker-table-container">
           {gameState ? (
             <PokerTable gameState={gameState} />
           ) : (
