@@ -2,23 +2,8 @@
 import { useEffect, useState, useRef } from "react"
 import { GameState, Player, PlayerAction, Emotion, GameStats } from "./types"
 import PokerTable from "./components/PokerTable"
-import {
-  createInitialGameState,
-  dealFlop,
-  dealPlayerCards,
-  dealRiver,
-  dealTurn,
-  processBettingRound,
-  initializeBlinds,
-  determineWinners,
-  awardPot,
-  setupNextHand,
-  addLogEntry,
-  gameLoop,
-} from "./game/gameEngine"
+import { createInitialGameState, gameLoop } from "./game/gameEngine"
 import { assignPersonalities, determineAction } from "./game/pokerAI"
-import { calculateEquity } from "./game/equityCalculator"
-import StatsPanel from "./components/StatsPanel"
 import ActivityLog from "./components/ActivityLog"
 import Card from "./components/Card"
 
