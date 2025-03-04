@@ -244,60 +244,36 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
 
                     {hasReasoningContent(entry) && (
                       <div className="mt-1">
-                        <button
-                          onClick={() => toggleExpand(index)}
-                          className="text-sm text-blue-400 hover:text-blue-300 flex items-center mb-1"
-                        >
-                          {expandedEntries[index]
-                            ? "Hide thought process"
-                            : "Show thought process"}
-                          <svg
-                            className={`ml-1 w-3 h-3 transition-transform ${
-                              expandedEntries[index] ? "rotate-180" : ""
-                            }`}
-                            fill="currentColor"
-                            viewBox="0 0 20 20"
-                          >
-                            <path
-                              fillRule="evenodd"
-                              d="M5.293 7.293a1 1 0 011.414 0L10 10.586l3.293-3.293a1 1 0 111.414 1.414l-4 4a1 1 0 01-1.414 0l-4-4a1 1 0 010-1.414z"
-                              clipRule="evenodd"
-                            />
-                          </svg>
-                        </button>
-
                         <AnimatePresence>
-                          {expandedEntries[index] && (
-                            <motion.div
-                              initial={{ height: 0, opacity: 0 }}
-                              animate={{ height: "auto", opacity: 1 }}
-                              exit={{ height: 0, opacity: 0 }}
-                              transition={{ duration: 0.3 }}
-                              className="p-2 bg-gray-700 rounded text-sm text-gray-300 overflow-hidden"
-                            >
-                              {entry.reasoningSummary && (
-                                <div className="mb-3">
-                                  <div className="font-semibold text-yellow-300 mb-1">
-                                    Summary:
-                                  </div>
-                                  <div className="text-gray-200 font-medium mb-2">
-                                    {entry.reasoningSummary}
-                                  </div>
+                          <motion.div
+                            initial={{ height: 0, opacity: 0 }}
+                            animate={{ height: "auto", opacity: 1 }}
+                            exit={{ height: 0, opacity: 0 }}
+                            transition={{ duration: 0.3 }}
+                            className="p-2 bg-gray-700 rounded text-sm text-gray-300 overflow-hidden"
+                          >
+                            {entry.reasoningSummary && (
+                              <div className="mb-3">
+                                <div className="font-semibold text-yellow-300 mb-1">
+                                  Summary:
                                 </div>
-                              )}
+                                <div className="text-gray-200 font-medium mb-2">
+                                  {entry.reasoningSummary}
+                                </div>
+                              </div>
+                            )}
 
-                              {entry.chainOfThought && (
-                                <div>
-                                  <div className="font-semibold mb-1">
-                                    Thought Process:
-                                  </div>
-                                  <div className="text-gray-300 italic">
-                                    {entry.chainOfThought}
-                                  </div>
+                            {entry.chainOfThought && (
+                              <div>
+                                <div className="font-semibold mb-1">
+                                  Thought Process:
                                 </div>
-                              )}
-                            </motion.div>
-                          )}
+                                <div className="text-gray-300 italic">
+                                  {entry.chainOfThought}
+                                </div>
+                              </div>
+                            )}
+                          </motion.div>
                         </AnimatePresence>
                       </div>
                     )}
