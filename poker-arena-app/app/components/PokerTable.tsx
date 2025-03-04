@@ -46,7 +46,7 @@ export default function PokerTable({ gameState }: PokerTableProps) {
       <div
         className="absolute inset-4 rounded-[50%] shadow-inner felt-texture"
         style={{
-          background: 'linear-gradient(to bottom, #0c4a6e, #082f49)', // Deep blue felt color
+          background: "linear-gradient(to bottom, #0c4a6e, #082f49)", // Deep blue felt color
           boxShadow:
             "inset 0 0 40px rgba(0,0,0,0.5), inset 0 0 80px rgba(0,0,0,0.3)",
         }}
@@ -151,7 +151,7 @@ export default function PokerTable({ gameState }: PokerTableProps) {
             key={player.id}
             player={player}
             position={positionIndex}
-            showCards={currentPhase === "showdown"}
+            showCards={true}
             isWinner={winningPlayers?.includes(player.id)}
           />
         )
