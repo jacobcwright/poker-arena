@@ -5,6 +5,7 @@ import PokerTable from "./components/PokerTable"
 import { createInitialGameState, gameLoop } from "./game/gameEngine"
 import { assignPersonalities, determineAction } from "./game/pokerAI"
 import ActivityLog from "./components/ActivityLog"
+import WinSummary from "./components/WinSummary"
 import Card from "./components/Card"
 
 // Define interface for AI decision to ensure type consistency
@@ -121,6 +122,7 @@ export default function Home() {
   })
   const isPausedRef = useRef(false)
   const [isLogOpen, setIsLogOpen] = useState(false)
+  const [isWinSummaryOpen, setIsWinSummaryOpen] = useState(false)
   const [playerTypes, setPlayerTypes] = useState<Record<number, string>>({}) // Track player types
   const [lastWinAmount, setLastWinAmount] = useState<number>(0) // Store the last winning amount
   const [autoPlayMode, setAutoPlayMode] = useState(
@@ -734,6 +736,18 @@ export default function Home() {
     }
   }, [gameState, isGameRunning, autoPlayMode, startFreshGame])
 
+  // Auto-open the win summary when a player wins
+  useEffect(() => {
+    if (
+      gameState &&
+      gameState.winningPlayers &&
+      gameState.winningPlayers.length > 0 &&
+      gameState.currentPhase === "showdown"
+    ) {
+      setIsWinSummaryOpen(true)
+    }
+  }, [gameState?.winningPlayers, gameState?.currentPhase])
+
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
       {/* Add the global styles */}
@@ -1246,6 +1260,13 @@ export default function Home() {
             )}
           </div>
         </div>
+
+        {/* Win Summary */}
+        <WinSummary
+          gameState={gameState}
+          isOpen={isWinSummaryOpen}
+          onToggle={() => setIsWinSummaryOpen(!isWinSummaryOpen)}
+        />
 
         {/* Activity Log */}
         <ActivityLog

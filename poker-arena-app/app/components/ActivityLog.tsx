@@ -173,7 +173,7 @@ const ActivityLog: React.FC<ActivityLogProps> = ({
       {/* Toggle button */}
       <button
         onClick={onToggle}
-        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full bg-gray-800 text-white p-4 rounded-l-md hover:bg-gray-700 transition-colors text-2xl"
+        className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-full bg-gray-800 text-white p-2 rounded-l-md hover:bg-gray-700 hover:p-4 transition-all duration-200 text-sm hover:text-2xl"
       >
         {isOpen ? "→" : "←"}
       </button>
