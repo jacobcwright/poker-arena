@@ -1,5 +1,5 @@
 "use client"
-import { useEffect, useState, useRef } from "react"
+import { useEffect, useState, useRef, useCallback } from "react"
 import { GameState, Player, PlayerAction, Emotion, GameStats } from "./types"
 import PokerTable from "./components/PokerTable"
 import { createInitialGameState, gameLoop } from "./game/gameEngine"
@@ -123,6 +123,11 @@ export default function Home() {
   const [isLogOpen, setIsLogOpen] = useState(false)
   const [playerTypes, setPlayerTypes] = useState<Record<number, string>>({}) // Track player types
   const [lastWinAmount, setLastWinAmount] = useState<number>(0) // Store the last winning amount
+  const [autoPlayMode, setAutoPlayMode] = useState(
+    process.env.AUTO_PLAY_MODE === "true"
+  )
+  const [gameEnded, setGameEnded] = useState(false) // Track if a game has ended
+  const autoPlayTimeoutRef = useRef<NodeJS.Timeout | null>(null)
 
   // Define model config type
   type ModelConfig = {
@@ -647,19 +652,87 @@ export default function Home() {
       newGameState.players.forEach((player) => {
         const modelType = playerTypes[player.id] || "AI"
         player.name = `${modelConfigs[modelType].name} #${player.id + 1}`
+        player.chips = 200
+        player.currentBet = 0
+        player.emotion = "neutral"
       })
 
       setGameState(newGameState)
       setIsGameRunning(true)
+      setGameEnded(false) // Reset game ended flag when starting new game
     } else {
       setIsGameRunning(false)
     }
   }
 
+  // Start a fresh game - used for autoplay restart
+  const startFreshGame = useCallback(() => {
+    // Create a fresh game state and reset round counter
+    roundRef.current = 1
+    const newGameState = {
+      ...createInitialGameState(playerCount),
+      round: roundRef.current,
+    }
+
+    // Update player names based on their assigned model types
+    newGameState.players.forEach((player) => {
+      const modelType = playerTypes[player.id] || "AI"
+      player.name = `${modelConfigs[modelType].name} #${player.id + 1}`
+      player.chips = 200
+      player.currentBet = 0
+      player.emotion = "neutral"
+    })
+
+    setGameState(newGameState)
+    setIsGameRunning(true)
+    setGameEnded(false)
+  }, [playerCount, playerTypes, modelConfigs])
+
   // Toggle pause state
   const togglePause = () => {
     setIsPaused((prev) => !prev)
   }
+
+  // Effect to monitor game state for autoplay
+  useEffect(() => {
+    // Clear any existing timeout when game state changes
+    if (autoPlayTimeoutRef.current) {
+      clearTimeout(autoPlayTimeoutRef.current)
+      autoPlayTimeoutRef.current = null
+    }
+
+    // Detect if game has ended
+    if (gameState && isGameRunning && gameState.currentPhase === "showdown") {
+      // Check if only one player has chips (tournament ended)
+      const playersWithChips = gameState.players.filter((p) => p.chips > 0)
+
+      if (playersWithChips.length === 1 && autoPlayMode) {
+        // Tournament has ended and autoplay is enabled, set a timeout to start a new game
+        setGameEnded(true)
+        console.log(
+          "Game ended with one player remaining. Will restart in 5 seconds."
+        )
+        autoPlayTimeoutRef.current = setTimeout(() => {
+          console.log("Starting new game via autoplay...")
+          setIsGameRunning(false) // First stop the current game
+          // Use a separate timeout to ensure state updates properly
+          setTimeout(() => {
+            startFreshGame() // Use our dedicated function to start a fresh game
+          }, 500)
+        }, 5000) // 5 second delay to show results
+      } else if (playersWithChips.length === 0) {
+        // Everyone is out, just mark the game as ended but don't auto-restart
+        setGameEnded(true)
+      }
+    }
+
+    // Cleanup function to clear the timeout when component unmounts or dependencies change
+    return () => {
+      if (autoPlayTimeoutRef.current) {
+        clearTimeout(autoPlayTimeoutRef.current)
+      }
+    }
+  }, [gameState, isGameRunning, autoPlayMode, startFreshGame])
 
   return (
     <div className="min-h-screen bg-gray-900 text-white p-8">
@@ -754,36 +827,50 @@ export default function Home() {
               </select>
             </div> */}
 
-            <button
-              onClick={toggleGame}
-              className={`px-6 py-2 rounded-md font-semibold ${
-                isGameRunning
-                  ? "bg-red-600 hover:bg-red-700"
-                  : "bg-green-600 hover:bg-green-700"
-              }`}
-            >
-              {isGameRunning ? "Stop Game" : "Start Game"}
-            </button>
+            <div className="flex items-center space-x-6 justify-between">
+              <div className="flex items-center space-x-4">
+                <button
+                  onClick={toggleGame}
+                  className={`px-6 py-2 rounded-md font-semibold focus:outline-none ${
+                    isGameRunning
+                      ? "bg-red-600 hover:bg-red-700"
+                      : "bg-green-600 hover:bg-green-700"
+                  }`}
+                >
+                  {isGameRunning ? "Stop Game" : "Start Game"}
+                </button>
 
-            {isGameRunning && (
-              <button
-                onClick={togglePause}
-                disabled={!isGameRunning}
-                className={`px-6 py-2 rounded-md font-semibold ${
-                  !isGameRunning
-                    ? "bg-gray-600 cursor-not-allowed"
-                    : isPaused
-                    ? "bg-blue-600 hover:bg-blue-700"
-                    : "bg-yellow-600 hover:bg-yellow-700"
-                }`}
-              >
-                {isPaused ? "Resume Game" : "Pause Game"}
-              </button>
-            )}
+                {isGameRunning && (
+                  <button
+                    onClick={togglePause}
+                    className={`px-6 py-2 rounded-md font-semibold focus:outline-none ${
+                      isPaused
+                        ? "bg-yellow-600 hover:bg-yellow-700"
+                        : "bg-blue-600 hover:bg-blue-700"
+                    }`}
+                  >
+                    {isPaused ? "Resume" : "Pause"}
+                  </button>
+                )}
+              </div>
+
+              <div className="space-x-4 flex items-center">
+                <div className="flex items-center">
+                  <label htmlFor="autoplay" className="mr-2 text-sm">
+                    Autoplay
+                  </label>
+                  <input
+                    id="autoplay"
+                    type="checkbox"
+                    checked={autoPlayMode}
+                    onChange={(e) => setAutoPlayMode(e.target.checked)}
+                    className="w-4 h-4"
+                  />
+                </div>
+              </div>
+            </div>
           </div>
-
-          {/* Activity Log toggle */}
-          <div className="flex justify-center mt-4">
+          <div className="flex items-center justify-center my-4">
             <button
               onClick={() => setIsLogOpen(!isLogOpen)}
               className="bg-green-600 hover:bg-green-700 px-4 py-2 rounded text-sm flex items-center gap-2"
