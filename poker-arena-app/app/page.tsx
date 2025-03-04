@@ -124,7 +124,7 @@ const globalStyles = `
 `
 
 export default function Home() {
-  const [playerCount, setPlayerCount] = useState(4)
+  const [playerCount, setPlayerCount] = useState(6)
   const [isGameRunning, setIsGameRunning] = useState(false)
   const [gameState, setGameState] = useState<GameState | null>(null)
   const [gamePhaseDelay, setGamePhaseDelay] = useState(2000) // milliseconds
@@ -265,10 +265,22 @@ export default function Home() {
 
     // Initialize player types with default "AI"
     const initialPlayerTypes: Record<number, string> = {}
-    initialState.players.forEach((player) => {
-      initialPlayerTypes[player.id] = "AI"
+    const playerTypeOptions = [
+      "Claude-3.7-Thinking-Bluff",
+      "Claude-3.7-Thinking",
+      "Claude-3.7",
+      "Phi-4-14b-Bluff",
+      "DeepSeek-R1:70b-Bluff",
+      "AI",
+    ]
+
+    initialState.players.forEach((player, index) => {
+      // Cycle through player types based on index
+      const playerType = playerTypeOptions[index % playerTypeOptions.length]
+      initialPlayerTypes[player.id] = playerType
+
       // Set initial player name based on model type
-      player.name = `${modelConfigs["AI"].name} #${player.id + 1}`
+      player.name = `${modelConfigs[playerType].name} #${player.id + 1}`
     })
     setPlayerTypes(initialPlayerTypes)
   }, [playerCount])
